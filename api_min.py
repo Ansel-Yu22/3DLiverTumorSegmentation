@@ -1,5 +1,7 @@
 import os
 import shutil
+import hashlib
+import secrets
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -10,7 +12,8 @@ from typing import Optional
 import numpy as np
 import SimpleITK as sitk
 import torch
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
 from scipy import ndimage
 from torch.utils.data import DataLoader, Dataset
@@ -37,10 +40,16 @@ TC_STRIDE = 20
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = None
 executor = ThreadPoolExecutor(max_workers=1)
+security = HTTPBasic()
 
 
 class PredictRequest(BaseModel):
     ct_path: str
+
+
+class UserAuthRequest(BaseModel):
+    username: str
+    password: str
 
 
 class InferenceDataset(Dataset):
@@ -129,6 +138,40 @@ async def _save_upload_file(file: UploadFile) -> tuple[str, str]:
         shutil.copyfileobj(file.file, f)
     await file.close()
     return upload_path, file.filename
+
+
+def _hash_password(password: str) -> str:
+    iterations = 120_000
+    salt = os.urandom(16).hex()
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), iterations).hex()
+    return f"pbkdf2_sha256${iterations}${salt}${digest}"
+
+
+def _verify_password(password: str, encoded: str) -> bool:
+    try:
+        scheme, iter_text, salt, digest = encoded.split("$", 3)
+        if scheme != "pbkdf2_sha256":
+            return False
+        iterations = int(iter_text)
+    except Exception:
+        return False
+
+    calc = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt), iterations).hex()
+    return secrets.compare_digest(calc, digest)
+
+
+def _require_user(credentials: HTTPBasicCredentials = Depends(security)) -> dict:
+    username = (credentials.username or "").strip()
+    password = credentials.password or ""
+    with db.get_session() as session:
+        user = crud.get_user_entity_by_username(session, username)
+    if user is None or not _verify_password(password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="invalid username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return {"id": user.id, "username": user.username}
 
 
 def run_predict(ct_path: str, output_name: Optional[str] = None) -> str:
@@ -223,6 +266,37 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/register")
+def register(req: UserAuthRequest):
+    username = req.username.strip()
+    password = req.password
+    if not username:
+        raise HTTPException(status_code=400, detail="username cannot be empty")
+    if not password:
+        raise HTTPException(status_code=400, detail="password cannot be empty")
+
+    with db.get_session() as session:
+        if crud.get_user_by_username(session, username) is not None:
+            raise HTTPException(status_code=409, detail="username already exists")
+        user = crud.create_user(session, username, _hash_password(password))
+    return user
+
+
+@app.post("/login")
+def login(req: UserAuthRequest):
+    username = req.username.strip()
+    password = req.password
+    with db.get_session() as session:
+        user = crud.get_user_entity_by_username(session, username)
+    if user is None or not _verify_password(password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="invalid username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return {"id": user.id, "username": user.username}
+
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     upload_path, original_filename = await _save_upload_file(file)
@@ -256,6 +330,16 @@ async def create_job(file: UploadFile = File(...)):
     return {"job_id": job_id, "status": "pending"}
 
 
+@app.post("/me/jobs")
+async def create_my_job(file: UploadFile = File(...), current_user: dict = Depends(_require_user)):
+    upload_path, original_filename = await _save_upload_file(file)
+    job_id = uuid.uuid4().hex
+    with db.get_session() as session:
+        crud.create_job(session, job_id, upload_path, original_filename, user_id=current_user["id"])
+    executor.submit(_run_job, job_id, upload_path, original_filename)
+    return {"job_id": job_id, "status": "pending"}
+
+
 @app.get("/jobs/{job_id}")
 def get_job(job_id: str):
     with db.get_session() as session:
@@ -263,6 +347,14 @@ def get_job(job_id: str):
     if job is None:
         raise HTTPException(status_code=404, detail="job not found")
     return job
+
+
+@app.get("/me/jobs")
+def list_my_jobs(limit: int = 20, current_user: dict = Depends(_require_user)):
+    limit = max(1, min(limit, 100))
+    with db.get_session() as session:
+        items = crud.list_jobs(session, user_id=current_user["id"], limit=limit)
+    return {"items": items, "count": len(items)}
 
 
 if __name__ == "__main__":

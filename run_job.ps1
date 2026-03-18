@@ -36,14 +36,40 @@ while ($true) {
     Write-Host ("status={0} elapsed_ms={1}" -f $status, $job.elapsed_ms)
 
     if ($status -eq "succeeded") {
-        $resultPath = [string]$job.result_path
-        if (-not [System.IO.Path]::IsPathRooted($resultPath)) {
-            $resultPath = Join-Path (Get-Location) $resultPath
+        $rawResultPath = [string]$job.result_path
+        if (-not $rawResultPath) {
+            throw "Job succeeded but result_path is empty."
         }
-        $resultPath = [System.IO.Path]::GetFullPath($resultPath)
+
+        $resultPath = $rawResultPath
+        $isLinuxStyleAbsolute = $rawResultPath.StartsWith("/")
+
+        if ($rawResultPath -like "/app/*") {
+            $relativeFromApp = $rawResultPath.Substring(5).TrimStart("/")
+            $mappedRelative = $relativeFromApp.Replace("/", [System.IO.Path]::DirectorySeparatorChar)
+            $mappedLocal = Join-Path (Get-Location) $mappedRelative
+            $mappedLocal = [System.IO.Path]::GetFullPath($mappedLocal)
+            if (Test-Path -LiteralPath $mappedLocal) {
+                $resultPath = $mappedLocal
+            } else {
+                Write-Host "4) Result path (container): $rawResultPath"
+                Write-Host "Job succeeded, but this path is inside container and not mapped to current host directory."
+                Write-Host "Tip: mount local Result folder to /app/Result when running docker."
+                break
+            }
+        } elseif ($isLinuxStyleAbsolute) {
+            Write-Host "4) Result path (linux absolute): $rawResultPath"
+            Write-Host "Job succeeded."
+            break
+        } else {
+            if (-not [System.IO.Path]::IsPathRooted($resultPath)) {
+                $resultPath = Join-Path (Get-Location) $resultPath
+            }
+            $resultPath = [System.IO.Path]::GetFullPath($resultPath)
+        }
 
         if (-not (Test-Path -LiteralPath $resultPath)) {
-            throw "Result file not found: $resultPath"
+            throw "Result file not found on host: $resultPath (api returned: $rawResultPath)"
         }
 
         Write-Host "4) Result file:"

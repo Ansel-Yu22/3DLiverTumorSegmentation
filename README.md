@@ -40,7 +40,29 @@ Stop services:
 
 ![UI Main](docs/images/ui-main.png)
 
-## 2) Run API locally
+## 2) End-to-end flow (for demo/interview)
+
+```mermaid
+flowchart LR
+  A["Start run_all.ps1"] --> B["Login/Register dialog"]
+  B --> C["Main UI"]
+  C --> D["Load CT file"]
+  D --> E["Click API segmentation"]
+  E --> F["POST /me/jobs"]
+  F --> G["Poll GET /jobs/{job_id}"]
+  G --> H["Status = succeeded"]
+  H --> I["Show segmentation result in UI"]
+  C --> J["Open 账号中心"]
+  J --> K["Auto-refresh GET /me/jobs"]
+```
+
+Recommended screenshots to show in resume/portfolio:
+
+- `docs/images/ui-main.png` (main segmentation UI)
+- login dialog (before entering main UI)
+- account center (shows username/password + recent jobs)
+
+## 3) Run API locally
 
 ```powershell
 conda activate pytorch
@@ -59,7 +81,7 @@ $env:DB_URL = "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?chars
 python api_min.py
 ```
 
-## 3) Main endpoints
+## 4) Main endpoints
 
 - `GET /health`
 - `POST /register` (username/password)
@@ -73,7 +95,7 @@ python api_min.py
 
 More API details: [README_api.md](README_api.md)
 
-## 4) Docker deployment
+## 5) Docker deployment
 
 ### Build image
 
@@ -97,6 +119,10 @@ docker run --rm -p 8000:8000 `
   liver-seg-api:latest
 ```
 
+Note: when API runs inside Docker, returned paths like `/app/Result/...` are
+container paths. `run_job.ps1` will try to map `/app/...` to current local
+directory automatically.
+
 ### Run with docker compose (recommended)
 
 ```powershell
@@ -115,7 +141,7 @@ Stop and remove:
 docker compose down
 ```
 
-## 5) Tests and CI
+## 6) Tests and CI
 
 Run local API logic tests:
 

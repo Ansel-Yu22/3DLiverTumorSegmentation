@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
@@ -52,6 +52,24 @@ def init_db(db_path: Optional[str] = None, db_url: Optional[str] = None) -> None
     import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _ensure_legacy_columns()
+
+
+def _ensure_legacy_columns() -> None:
+    inspector = inspect(engine)
+    if "jobs" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("jobs")}
+    if "user_id" in columns:
+        return
+
+    add_sql = "ALTER TABLE jobs ADD COLUMN user_id INTEGER NULL"
+    if engine.dialect.name == "mysql":
+        add_sql = "ALTER TABLE jobs ADD COLUMN user_id INT NULL"
+
+    with engine.begin() as conn:
+        conn.execute(text(add_sql))
 
 
 def get_session():

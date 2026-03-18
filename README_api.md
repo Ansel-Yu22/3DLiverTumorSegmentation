@@ -49,6 +49,10 @@ Notes:
 
 - `GET /health`
   - health check
+- `POST /register`
+  - register user (`username`, `password`)
+- `POST /login`
+  - login validation (`username`, `password`)
 - `POST /predict`
   - upload file and run sync prediction
 - `POST /predict_by_path`
@@ -57,6 +61,10 @@ Notes:
   - upload file and create async job
 - `GET /jobs/{job_id}`
   - poll async job status
+- `POST /me/jobs` (HTTP Basic auth)
+  - create async job for current user
+- `GET /me/jobs` (HTTP Basic auth)
+  - list current user's jobs
 
 ## 4) PowerShell helpers
 

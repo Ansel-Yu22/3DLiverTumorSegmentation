@@ -45,6 +45,28 @@ def test_health(client):
     assert resp.json() == {"status": "ok"}
 
 
+def test_register_and_login(client):
+    register_resp = client.post("/register", json={"username": "alice", "password": "secret123"})
+    assert register_resp.status_code == 200
+    reg = register_resp.json()
+    assert reg["username"] == "alice"
+    assert "id" in reg
+
+    login_resp = client.post("/login", json={"username": "alice", "password": "secret123"})
+    assert login_resp.status_code == 200
+    login = login_resp.json()
+    assert login["username"] == "alice"
+    assert login["id"] == reg["id"]
+
+    bad_login = client.post("/login", json={"username": "alice", "password": "wrong"})
+    assert bad_login.status_code == 401
+
+
+def test_me_jobs_requires_auth(client):
+    resp = client.get("/me/jobs")
+    assert resp.status_code == 401
+
+
 def test_predict_upload(client):
     resp = client.post(
         "/predict",
@@ -89,6 +111,40 @@ def test_jobs_submit_and_poll(client):
     assert isinstance(final["elapsed_ms"], int)
     assert final["elapsed_ms"] >= 0
     assert Path(final["result_path"]).exists()
+
+
+def test_me_jobs_submit_and_list(client):
+    reg = client.post("/register", json={"username": "bob", "password": "pass123"}).json()
+    auth = ("bob", "pass123")
+
+    submit_resp = client.post(
+        "/me/jobs",
+        files={"file": ("volume-40.nii", io.BytesIO(b"dummy-ct"), "application/octet-stream")},
+        auth=auth,
+    )
+    assert submit_resp.status_code == 200
+    job_id = submit_resp.json()["job_id"]
+
+    final = None
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        poll_resp = client.get(f"/jobs/{job_id}")
+        assert poll_resp.status_code == 200
+        job = poll_resp.json()
+        if job["status"] in {"succeeded", "failed"}:
+            final = job
+            break
+        time.sleep(0.05)
+
+    assert final is not None, "job polling timed out"
+    assert final["status"] == "succeeded"
+    assert final["user_id"] == reg["id"]
+
+    list_resp = client.get("/me/jobs", auth=auth)
+    assert list_resp.status_code == 200
+    payload = list_resp.json()
+    assert payload["count"] >= 1
+    assert any(item["job_id"] == job_id for item in payload["items"])
 
 
 def test_job_not_found(client):
