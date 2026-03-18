@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Project runtime outputs
+Result/
+
+# Large model/data files (keep repository lightweight)
+Model/model/*.pth
+CT/
+Dataset/
+
+# OS
+.DS_Store
+Thumbs.db

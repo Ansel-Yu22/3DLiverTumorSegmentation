@@ -1,0 +1,45 @@
+﻿name: API Tests
+
+on:
+  push:
+    paths:
+      - "api_min.py"
+      - "crud.py"
+      - "db.py"
+      - "models.py"
+      - "tests/**"
+      - "requirements-api.txt"
+      - "requirements-dev.txt"
+      - ".github/workflows/api-test.yml"
+  pull_request:
+    paths:
+      - "api_min.py"
+      - "crud.py"
+      - "db.py"
+      - "models.py"
+      - "tests/**"
+      - "requirements-api.txt"
+      - "requirements-dev.txt"
+      - ".github/workflows/api-test.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run API tests
+        run: |
+          pytest -q tests/test_api_min.py
