@@ -449,25 +449,25 @@ class AccountDialog(QtWidgets.QDialog):
 
         self.view_username = QtWidgets.QLineEdit()
         self.view_username.setReadOnly(True)
-        self.btn_copy_username = QtWidgets.QPushButton("Copy")
+        self.btn_copy_username = QtWidgets.QPushButton("复制")
         username_row = QtWidgets.QWidget()
         username_layout = QtWidgets.QHBoxLayout(username_row)
         username_layout.setContentsMargins(0, 0, 0, 0)
         username_layout.setSpacing(8)
         username_layout.addWidget(self.view_username, 1)
         username_layout.addWidget(self.btn_copy_username)
-        form.addRow("Current Username", username_row)
+        form.addRow("当前账号", username_row)
 
         self.view_password = QtWidgets.QLineEdit()
         self.view_password.setReadOnly(True)
-        self.btn_copy_password = QtWidgets.QPushButton("Copy")
+        self.btn_copy_password = QtWidgets.QPushButton("复制")
         password_row = QtWidgets.QWidget()
         password_layout = QtWidgets.QHBoxLayout(password_row)
         password_layout.setContentsMargins(0, 0, 0, 0)
         password_layout.setSpacing(8)
         password_layout.addWidget(self.view_password, 1)
         password_layout.addWidget(self.btn_copy_password)
-        form.addRow("Current Password", password_row)
+        form.addRow("当前密码", password_row)
 
         root.addLayout(form)
 
@@ -507,7 +507,12 @@ class AccountDialog(QtWidgets.QDialog):
 
     def _copy_to_clipboard(self, value, field_name):
         QApplication.clipboard().setText(value or "")
-        self._set_status(f"{field_name} copied")
+        if field_name == "username":
+            self._set_status("账号已复制")
+        elif field_name == "password":
+            self._set_status("密码已复制")
+        else:
+            self._set_status("已复制")
 
     def _update_view(self):
         self.edit_api_base.setText(self.main.api_base_url)
@@ -707,6 +712,26 @@ class MainWindow(QMainWindow):
     def _query_api_job(self, job_id):
         return self.api_client.query_job(job_id, timeout=30)
 
+    @staticmethod
+    def _resolve_api_result_path(raw_path):
+        if not raw_path:
+            return None
+
+        path_value = str(raw_path)
+
+        # Local relative path from API.
+        if not os.path.isabs(path_value) and not path_value.startswith("/"):
+            return os.path.abspath(path_value)
+
+        # Container path mapping (/app/...) -> local project path.
+        if path_value.startswith("/app/"):
+            relative = path_value[len("/app/") :].replace("/", os.sep)
+            mapped = os.path.abspath(os.path.join(os.getcwd(), relative))
+            if os.path.exists(mapped):
+                return mapped
+
+        return path_value
+
     def _start_api_polling(self, job_id, ct_path, endpoint):
         self.api_poll_context = {
             "job_id": job_id,
@@ -768,7 +793,7 @@ class MainWindow(QMainWindow):
         self._stop_api_polling()
 
         if status == "succeeded":
-            result_path = job.get("result_path")
+            result_path = self._resolve_api_result_path(job.get("result_path"))
             elapsed_ms = job.get("elapsed_ms")
             if not result_path or not os.path.exists(result_path):
                 QMessageBox.critical(self, "Error", f"Job succeeded but result not found:\n{result_path}", QMessageBox.Yes)
@@ -798,7 +823,7 @@ class MainWindow(QMainWindow):
 
     def segmentation_api(self):
         if self.api_poll_context is not None:
-            QMessageBox.information(self, "Info", "An API job is already running.", QMessageBox.Yes)
+            QMessageBox.information(self, "提示", "已有 API 任务在运行，请稍候。", QMessageBox.Yes)
             return
 
         ct_path = self.ui.lineEdit_CT_path.text().strip()

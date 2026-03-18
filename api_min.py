@@ -140,14 +140,19 @@ class InferenceDataset(Dataset):
         return patches
 
 
-async def _save_upload_file(file: UploadFile) -> tuple[str, str]:
+def _save_upload_file(file: UploadFile) -> tuple[str, str]:
     suffixes = "".join(Path(file.filename).suffixes)
     suffix = suffixes if suffixes else ".nii"
     upload_name = f"{uuid.uuid4().hex}{suffix}"
     upload_path = os.path.join(UPLOAD_DIR, upload_name)
-    with open(upload_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    await file.close()
+    try:
+        with open(upload_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+    finally:
+        try:
+            file.file.close()
+        except Exception:
+            pass
     return upload_path, file.filename
 
 
@@ -311,8 +316,8 @@ def login(req: UserAuthRequest):
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
-    upload_path, original_filename = await _save_upload_file(file)
+def predict(file: UploadFile = File(...)):
+    upload_path, original_filename = _save_upload_file(file)
 
     start = time.time()
     try:
@@ -337,8 +342,8 @@ def predict_by_path(req: PredictRequest):
 
 
 @app.post("/jobs")
-async def create_job(file: UploadFile = File(...)):
-    upload_path, original_filename = await _save_upload_file(file)
+def create_job(file: UploadFile = File(...)):
+    upload_path, original_filename = _save_upload_file(file)
     job_id = uuid.uuid4().hex
     with db.get_session() as session:
         crud.create_job(session, job_id, upload_path, original_filename)
@@ -351,8 +356,8 @@ async def create_job(file: UploadFile = File(...)):
 
 
 @app.post("/me/jobs")
-async def create_my_job(file: UploadFile = File(...), current_user: dict = Depends(_require_user)):
-    upload_path, original_filename = await _save_upload_file(file)
+def create_my_job(file: UploadFile = File(...), current_user: dict = Depends(_require_user)):
+    upload_path, original_filename = _save_upload_file(file)
     job_id = uuid.uuid4().hex
     with db.get_session() as session:
         crud.create_job(session, job_id, upload_path, original_filename, user_id=current_user["id"])
