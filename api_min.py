@@ -24,6 +24,7 @@ MODEL_PATH = os.getenv("MODEL_PATH", "./Model/model/best_model.pth")
 RESULT_DIR = os.getenv("RESULT_DIR", "./Result/api_result")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./Result/uploads")
 DB_PATH = os.getenv("DB_PATH", "./Result/jobs.db")
+DB_URL = os.getenv("DB_URL", "").strip()
 N_LABEL = 3
 DROP_RATE = 0.3
 UPPER = 300
@@ -200,7 +201,7 @@ def _startup_init() -> None:
     global model
     os.makedirs(RESULT_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
-    db.init_db(DB_PATH)
+    db.init_db(db_path=DB_PATH if not DB_URL else None, db_url=DB_URL or None)
     net = UNet(in_channel=1, out_channel=N_LABEL, drop_rate=DROP_RATE, training=False)
     net = net.to(device)
     state_dict = _load_state_dict(MODEL_PATH)

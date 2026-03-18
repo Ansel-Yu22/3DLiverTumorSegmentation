@@ -17,20 +17,37 @@ def _sqlite_url(db_path: str) -> str:
     return f"sqlite:///{Path(db_path).as_posix()}"
 
 
-def configure_database(db_path: str) -> None:
-    global DB_PATH, engine, SessionLocal
-    DB_PATH = db_path
-    db_parent = Path(db_path).parent
-    if str(db_parent) not in {"", "."}:
-        os.makedirs(db_parent, exist_ok=True)
+def _normalize_db_url(db_url: str) -> str:
+    db_url = db_url.strip()
+    if db_url.startswith("mysql://"):
+        # SQLAlchemy 2.x requires explicit DBAPI driver.
+        return db_url.replace("mysql://", "mysql+pymysql://", 1)
+    return db_url
 
-    engine = create_engine(_sqlite_url(db_path), connect_args={"check_same_thread": False})
+
+def configure_database(db_path: Optional[str] = None, db_url: Optional[str] = None) -> None:
+    global DB_PATH, engine, SessionLocal
+    connect_args = {}
+
+    if db_url:
+        database_url = _normalize_db_url(db_url)
+    else:
+        DB_PATH = db_path or DB_PATH
+        db_parent = Path(DB_PATH).parent
+        if str(db_parent) not in {"", "."}:
+            os.makedirs(db_parent, exist_ok=True)
+        database_url = _sqlite_url(DB_PATH)
+
+    if database_url.startswith("sqlite"):
+        connect_args["check_same_thread"] = False
+
+    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
     SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, expire_on_commit=False)
 
 
-def init_db(db_path: Optional[str] = None) -> None:
-    if db_path is not None or engine is None or SessionLocal is None:
-        configure_database(db_path or DB_PATH)
+def init_db(db_path: Optional[str] = None, db_url: Optional[str] = None) -> None:
+    if db_path is not None or db_url is not None or engine is None or SessionLocal is None:
+        configure_database(db_path=db_path or DB_PATH, db_url=db_url)
 
     import models  # noqa: F401
 
@@ -39,5 +56,6 @@ def init_db(db_path: Optional[str] = None) -> None:
 
 def get_session():
     if SessionLocal is None:
-        configure_database(DB_PATH)
+        env_db_url = os.getenv("DB_URL", "").strip()
+        configure_database(db_path=DB_PATH if not env_db_url else None, db_url=env_db_url or None)
     return SessionLocal()

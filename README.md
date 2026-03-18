@@ -42,6 +42,15 @@ python api_min.py
 
 Default service address: `http://127.0.0.1:8000`
 
+Default database: SQLite (`./Result/jobs.db` via `DB_PATH`).
+
+Use MySQL by setting `DB_URL` before startup:
+
+```powershell
+$env:DB_URL = "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
+python api_min.py
+```
+
 ## 3) Main endpoints
 
 - `GET /health`

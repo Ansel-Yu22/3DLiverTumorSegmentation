@@ -30,6 +30,21 @@ Default address:
 
 - `http://127.0.0.1:8000`
 
+### Switch database to MySQL (optional)
+
+Default DB is SQLite (`./Result/jobs.db`).
+To use MySQL, set `DB_URL` before starting API:
+
+```powershell
+$env:DB_URL = "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
+python api_min.py
+```
+
+Notes:
+
+- If `DB_URL` is set, it has higher priority than `DB_PATH`.
+- `mysql://...` is also accepted and will be auto-converted to `mysql+pymysql://...`.
+
 ## 3) Endpoints
 
 - `GET /health`
