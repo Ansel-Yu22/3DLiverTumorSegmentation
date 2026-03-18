@@ -1,12 +1,16 @@
 import config
 from Model.Model import UNet
+import json
 import os
 import sys
+import time
 import torch
 import shutil
 import numpy as np
 import nibabel as nib
 import SimpleITK as sitk
+import urllib.error
+import urllib.request
 from scipy import ndimage
 from torch.utils.data import Dataset
 from PyQt5.QtCore import Qt, QSettings
@@ -23,6 +27,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1038, 666)
+        MainWindow.setFixedSize(1038, 666)
         palette = QPalette()
         palette.setColor(QPalette.Window, QColor("#f5f5f5"))
         MainWindow.setPalette(palette)
@@ -38,11 +43,48 @@ class Ui_MainWindow(object):
         self.kai_font_16 = QtGui.QFont("楷体", 16)
         self.times_font_14 = QtGui.QFont("Times New Roman", 14)
         self.button_style = """
-            QPushButton {border-radius: 10px; background-color: #e0e0e0; padding: 5px;}
-            QPushButton:hover {background-color: #d0d0d0;}
+            QPushButton {
+                border: 1px solid #c8d3df;
+                border-radius: 12px;
+                background-color: #f1f5f9;
+                color: #1f2937;
+                padding: 6px 10px;
+            }
+            QPushButton:hover {
+                background-color: #e2e8f0;
+                border-color: #94a3b8;
+            }
+            QPushButton:pressed { background-color: #dbe4ef; }
         """
-        self.lineedit_style = "border: 1px solid #ccc; background-color: #fff; border-radius: 5px; padding: 5px;"
-        self.label_style = "border: 1px solid #ccc; background-color: #fff;"
+        self.action_primary_style = """
+            QPushButton {
+                border: none;
+                border-radius: 12px;
+                background-color: #2f7dd1;
+                color: white;
+                font-weight: 600;
+                padding: 6px 10px;
+            }
+            QPushButton:hover { background-color: #256db8; }
+            QPushButton:pressed { background-color: #1f5a98; }
+        """
+        self.action_secondary_style = """
+            QPushButton {
+                border: 1px solid #9fb6cc;
+                border-radius: 12px;
+                background-color: #e8f0f8;
+                color: #133a5f;
+                font-weight: 600;
+                padding: 6px 10px;
+            }
+            QPushButton:hover {
+                background-color: #d8e6f3;
+                border-color: #7d9fbd;
+            }
+            QPushButton:pressed { background-color: #c8daeb; }
+        """
+        self.lineedit_style = "border: 1px solid #c8d3df; background-color: #fff; border-radius: 10px; padding: 6px 10px; color:#334155;"
+        self.label_style = "border: 1px solid #c8d3df; background-color: #fff; border-radius: 10px;"
         self.pushButton_CT = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_CT.setGeometry(QtCore.QRect(50, 50, 150, 50))
         self.pushButton_CT.setFont(self.kai_font_14)
@@ -122,6 +164,18 @@ class Ui_MainWindow(object):
         self.progressBar.setFont(self.kai_font_14)
         self.progressBar.setValue(0)
         self.progressBar.setAlignment(Qt.AlignCenter)
+        self.progressBar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #c8d3df;
+                border-radius: 10px;
+                background: #eef2f7;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #3b82f6;
+                border-radius: 10px;
+            }
+        """)
         self.pushButton_previous = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_previous.setGeometry(QtCore.QRect(200, 536, 100, 40))
         self.pushButton_previous.setFont(self.kai_font_12)
@@ -141,51 +195,57 @@ class Ui_MainWindow(object):
         self.pushButton_next.setStyleSheet(self.button_style)
         self.pushButton_next.setToolTip("显示下一张切片")
         self.pushButton_segmentation = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_segmentation.setGeometry(QtCore.QRect(858, 50, 150, 50))
+        self.pushButton_segmentation.setGeometry(QtCore.QRect(858, 50, 150, 46))
         self.pushButton_segmentation.setFont(self.kai_font_14)
+        self.pushButton_segmentation_api = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_segmentation_api.setGeometry(QtCore.QRect(858, 106, 150, 46))
+        self.pushButton_segmentation_api.setFont(self.kai_font_14)
+        self.pushButton_segmentation_api.setText("API分割")
+        self.pushButton_segmentation_api.setStyleSheet(self.action_primary_style)
+        self.pushButton_segmentation_api.setToolTip("Run async segmentation via backend API")
         self.pushButton_segmentation.setText("点击分割")
-        self.pushButton_segmentation.setStyleSheet(self.button_style)
+        self.pushButton_segmentation.setStyleSheet(self.action_primary_style)
         self.pushButton_segmentation.setToolTip("执行肝脏肿瘤CT分割")
         self.pushButton_save = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_save.setGeometry(QtCore.QRect(858, 130, 150, 50))
+        self.pushButton_save.setGeometry(QtCore.QRect(858, 162, 150, 46))
         self.pushButton_save.setFont(self.kai_font_14)
         self.pushButton_save.setText("点击保存")
-        self.pushButton_save.setStyleSheet(self.button_style)
+        self.pushButton_save.setStyleSheet(self.action_secondary_style)
         self.pushButton_save.setToolTip("保存分割结果")
         self.pushButton_info = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_info.setGeometry(QtCore.QRect(858, 210, 150, 50))
+        self.pushButton_info.setGeometry(QtCore.QRect(858, 218, 150, 46))
         self.pushButton_info.setFont(self.kai_font_14)
         self.pushButton_info.setText("点击评价")
-        self.pushButton_info.setStyleSheet(self.button_style)
+        self.pushButton_info.setStyleSheet(self.action_secondary_style)
         self.pushButton_info.setToolTip("显示分割指标")
         self.label_metrics_title = QtWidgets.QLabel(self.centralwidget)
-        self.label_metrics_title.setGeometry(QtCore.QRect(858, 320, 150, 30))
+        self.label_metrics_title.setGeometry(QtCore.QRect(858, 286, 150, 28))
         self.label_metrics_title.setFont(self.kai_font_14)
         self.label_metrics_title.setText("分割指标")
         self.label_metrics_title.setAlignment(Qt.AlignCenter)
-        self.label_metrics_title.setStyleSheet("background: transparent;")
+        self.label_metrics_title.setStyleSheet("background: transparent; color: #334155;")
         self.groupBox = QtWidgets.QGroupBox(self.centralwidget)
-        self.groupBox.setGeometry(QtCore.QRect(858, 350, 150, 226))
+        self.groupBox.setGeometry(QtCore.QRect(858, 318, 150, 258))
         self.groupBox.setFont(self.kai_font_14)
         self.groupBox.setTitle("")
         self.groupBox.setAlignment(Qt.AlignCenter)
-        self.groupBox.setStyleSheet(""" QGroupBox { background:#fff; border:1px solid #ccc; margin-top:0px; } """)
+        self.groupBox.setStyleSheet(""" QGroupBox { background:#fff; border:1px solid #c8d3df; border-radius: 10px; margin-top:0px; } """)
         self.label_dice = QtWidgets.QLabel(self.groupBox)
-        self.label_dice.setGeometry(QtCore.QRect(25, 28, 100, 30))
+        self.label_dice.setGeometry(QtCore.QRect(20, 34, 110, 30))
         self.label_dice.setFont(self.times_font_14)
         self.label_dice.setText("Dice:")
         self.lineEdit_Dice = QtWidgets.QLineEdit(self.groupBox)
-        self.lineEdit_Dice.setGeometry(QtCore.QRect(25, 68, 100, 30))
+        self.lineEdit_Dice.setGeometry(QtCore.QRect(20, 74, 110, 34))
         self.lineEdit_Dice.setFont(self.times_font_14)
         self.lineEdit_Dice.setAlignment(Qt.AlignCenter)
         self.lineEdit_Dice.setReadOnly(True)
         self.lineEdit_Dice.setStyleSheet(self.lineedit_style)
         self.label_jaccard = QtWidgets.QLabel(self.groupBox)
-        self.label_jaccard.setGeometry(QtCore.QRect(25, 128, 100, 30))
+        self.label_jaccard.setGeometry(QtCore.QRect(20, 142, 110, 30))
         self.label_jaccard.setFont(self.times_font_14)
         self.label_jaccard.setText("Jaccard:")
         self.lineEdit_iou = QtWidgets.QLineEdit(self.groupBox)
-        self.lineEdit_iou.setGeometry(QtCore.QRect(25, 168, 100, 30))
+        self.lineEdit_iou.setGeometry(QtCore.QRect(20, 182, 110, 34))
         self.lineEdit_iou.setFont(self.times_font_14)
         self.lineEdit_iou.setAlignment(Qt.AlignCenter)
         self.lineEdit_iou.setReadOnly(True)
@@ -214,6 +274,9 @@ class MainWindow(QMainWindow):
         self.label_data = None
         self.segmentation_data = None
         self.segmentation_path = None
+        self.api_base_url = os.environ.get("SEG_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+        self.api_poll_interval_sec = 2
+        self.api_timeout_sec = 600
 
     def show_about(self):
         html = (
@@ -232,6 +295,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_CT.clicked.connect(self.load_CT)
         self.ui.pushButton_label.clicked.connect(self.load_label)
         self.ui.pushButton_segmentation.clicked.connect(self.segmentation)
+        self.ui.pushButton_segmentation_api.clicked.connect(self.segmentation_api)
         self.ui.pushButton_save.clicked.connect(self.save)
         self.ui.pushButton_info.clicked.connect(self.info)
         self.ui.pushButton_next.clicked.connect(self.next_slice)
@@ -266,6 +330,124 @@ class MainWindow(QMainWindow):
         self.label_data = nii_img.get_fdata()
         if self.ct_data is not None:
             self.display_slice()
+
+    @staticmethod
+    def _decode_json_response(response):
+        body = response.read().decode("utf-8")
+        return json.loads(body) if body else {}
+
+    @staticmethod
+    def _read_http_error(exc):
+        try:
+            detail = exc.read().decode("utf-8", errors="ignore").strip()
+            return detail if detail else str(exc)
+        except Exception:
+            return str(exc)
+
+    def _submit_api_job(self, ct_path):
+        boundary = f"----PyQtBoundary{os.urandom(12).hex()}"
+        filename = os.path.basename(ct_path)
+        with open(ct_path, "rb") as f:
+            file_bytes = f.read()
+        payload = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+            "Content-Type: application/octet-stream\r\n\r\n"
+        ).encode("utf-8") + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+        req = urllib.request.Request(f"{self.api_base_url}/jobs", data=payload, method="POST")
+        req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+        req.add_header("Content-Length", str(len(payload)))
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            return self._decode_json_response(resp)
+
+    def _query_api_job(self, job_id):
+        req = urllib.request.Request(f"{self.api_base_url}/jobs/{job_id}", method="GET")
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return self._decode_json_response(resp)
+
+    def segmentation_api(self):
+        ct_path = self.ui.lineEdit_CT_path.text().strip()
+        if not ct_path:
+            QMessageBox.information(self, "Info", "Please load a CT file first.", QMessageBox.Yes)
+            return
+        if not os.path.exists(ct_path):
+            QMessageBox.critical(self, "Error", f"CT file not found:\n{ct_path}", QMessageBox.Yes)
+            return
+
+        self.ui.lineEdit_Dice.setText("")
+        self.ui.lineEdit_iou.setText("")
+        self.ui.progressBar.setValue(5)
+
+        try:
+            submit_resp = self._submit_api_job(ct_path)
+            job_id = submit_resp.get("job_id")
+            if not job_id:
+                raise RuntimeError(f"Invalid /jobs response: {submit_resp}")
+        except urllib.error.HTTPError as exc:
+            QMessageBox.critical(
+                self, "Error", f"Submit failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+            )
+            return
+        except urllib.error.URLError as exc:
+            QMessageBox.critical(self, "Error", f"Cannot connect API:\n{exc.reason}", QMessageBox.Yes)
+            return
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Submit failed:\n{exc}", QMessageBox.Yes)
+            return
+
+        start = time.time()
+        status = "pending"
+        job = {}
+        while status in {"pending", "running"}:
+            if time.time() - start > self.api_timeout_sec:
+                QMessageBox.warning(self, "Warning", "Job polling timeout.", QMessageBox.Yes)
+                return
+            time.sleep(self.api_poll_interval_sec)
+            QApplication.processEvents()
+            try:
+                job = self._query_api_job(job_id)
+            except urllib.error.HTTPError as exc:
+                QMessageBox.critical(
+                    self, "Error", f"Query failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+                )
+                return
+            except urllib.error.URLError as exc:
+                QMessageBox.critical(self, "Error", f"Cannot connect API:\n{exc.reason}", QMessageBox.Yes)
+                return
+            except Exception as exc:
+                QMessageBox.critical(self, "Error", f"Query failed:\n{exc}", QMessageBox.Yes)
+                return
+
+            status = job.get("status", "")
+            progress = min(95, 10 + int((time.time() - start) / self.api_timeout_sec * 90))
+            self.ui.progressBar.setValue(progress)
+
+        if status == "succeeded":
+            result_path = job.get("result_path")
+            elapsed_ms = job.get("elapsed_ms")
+            if not result_path or not os.path.exists(result_path):
+                QMessageBox.critical(self, "Error", f"Job succeeded but result not found:\n{result_path}", QMessageBox.Yes)
+                return
+            self.segmentation_path = result_path
+            self.ct_name = os.path.basename(ct_path).split('-')[-1]
+            nii_img = nib.load(self.segmentation_path)
+            self.segmentation_data = nii_img.get_fdata()
+            self.display_slice()
+            self.ui.progressBar.setValue(100)
+            QMessageBox.information(
+                self, "Info", f"API segmentation succeeded\njob_id: {job_id}\nelapsed: {elapsed_ms} ms", QMessageBox.Yes
+            )
+            return
+
+        error_msg = job.get("error") or "unknown error"
+        elapsed_ms = job.get("elapsed_ms")
+        self.ui.progressBar.setValue(0)
+        QMessageBox.critical(
+            self,
+            "Error",
+            f"API segmentation failed\njob_id: {job_id}\nelapsed: {elapsed_ms} ms\nerror: {error_msg}",
+            QMessageBox.Yes,
+        )
 
     def segmentation(self):
         if not self.ui.lineEdit_CT_path.text():
