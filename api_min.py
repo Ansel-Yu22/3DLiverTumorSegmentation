@@ -20,10 +20,10 @@ import db
 from Model.Model import UNet
 
 
-MODEL_PATH = "./Model/model/best_model.pth"
-RESULT_DIR = "./Result/api_result"
-UPLOAD_DIR = "./Result/uploads"
-DB_PATH = "./Result/jobs.db"
+MODEL_PATH = os.getenv("MODEL_PATH", "./Model/model/best_model.pth")
+RESULT_DIR = os.getenv("RESULT_DIR", "./Result/api_result")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./Result/uploads")
+DB_PATH = os.getenv("DB_PATH", "./Result/jobs.db")
 N_LABEL = 3
 DROP_RATE = 0.3
 UPPER = 300

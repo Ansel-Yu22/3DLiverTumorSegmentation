@@ -1,0 +1,27 @@
+.git
+.github
+.idea
+.vscode
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+
+# Large local datasets/results
+CT/
+Dataset/
+Result/
+*.nii
+*.nii.gz
+
+# Keep model code, ignore local weight files
+Model/model/
+*.pth
+
+# Local scripts not required in image
+tests/
+run_*.ps1
+UI.py
+train.py
+test.py
