@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QImage, QPixmap, QPalette, QColor
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
+from path_utils import resolve_result_path
 
 
 __version__ = '2.0.0'
@@ -714,23 +715,7 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _resolve_api_result_path(raw_path):
-        if not raw_path:
-            return None
-
-        path_value = str(raw_path)
-
-        # Local relative path from API.
-        if not os.path.isabs(path_value) and not path_value.startswith("/"):
-            return os.path.abspath(path_value)
-
-        # Container path mapping (/app/...) -> local project path.
-        if path_value.startswith("/app/"):
-            relative = path_value[len("/app/") :].replace("/", os.sep)
-            mapped = os.path.abspath(os.path.join(os.getcwd(), relative))
-            if os.path.exists(mapped):
-                return mapped
-
-        return path_value
+        return resolve_result_path(raw_path, base_dir=os.getcwd())
 
     def _start_api_polling(self, job_id, ct_path, endpoint):
         self.api_poll_context = {

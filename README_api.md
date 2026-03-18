@@ -68,19 +68,34 @@ Notes:
 
 ## 4) PowerShell helpers
 
-- Sync predict helper:
+- Unified helper (recommended):
+
+```powershell
+# sync predict
+powershell -ExecutionPolicy Bypass -File .\run_api.ps1 -Mode predict
+
+# async job (verbose)
+powershell -ExecutionPolicy Bypass -File .\run_api.ps1 -Mode job
+
+# async job (concise)
+powershell -ExecutionPolicy Bypass -File .\run_api.ps1 -Mode job_simple
+```
+
+Legacy wrappers are still available:
+
+- Sync predict wrapper:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_predict.ps1
 ```
 
-- Async job helper:
+- Async job wrapper:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_job.ps1
 ```
 
-- Concise async helper (with failure reason and timing):
+- Concise async wrapper (with failure reason and timing):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run_job_simple.ps1

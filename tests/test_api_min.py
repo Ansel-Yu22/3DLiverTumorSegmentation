@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import api_min
+from path_utils import resolve_result_path
 
 
 @pytest.fixture
@@ -81,6 +82,8 @@ def test_predict_upload(client):
 
     result_path = Path(data["result_path"])
     assert result_path.exists()
+    # Uploaded temp file should be cleaned after sync inference.
+    assert not any(Path(api_min.UPLOAD_DIR).iterdir())
 
 
 def test_jobs_submit_and_poll(client):
@@ -111,6 +114,8 @@ def test_jobs_submit_and_poll(client):
     assert isinstance(final["elapsed_ms"], int)
     assert final["elapsed_ms"] >= 0
     assert Path(final["result_path"]).exists()
+    # Uploaded temp file should be cleaned after async job completion.
+    assert not any(Path(api_min.UPLOAD_DIR).iterdir())
 
 
 def test_me_jobs_submit_and_list(client):
@@ -145,9 +150,25 @@ def test_me_jobs_submit_and_list(client):
     payload = list_resp.json()
     assert payload["count"] >= 1
     assert any(item["job_id"] == job_id for item in payload["items"])
+    # Uploaded temp file should be cleaned after async job completion.
+    assert not any(Path(api_min.UPLOAD_DIR).iterdir())
 
 
 def test_job_not_found(client):
     resp = client.get("/jobs/not_exists")
     assert resp.status_code == 404
     assert resp.json()["detail"] == "job not found"
+
+
+def test_resolve_result_path_container_mapping(tmp_path):
+    project_root = tmp_path
+    local_result = project_root / "Result" / "api_result" / "result-volume-40.nii"
+    local_result.parent.mkdir(parents=True, exist_ok=True)
+    local_result.write_bytes(b"ok")
+
+    mapped = resolve_result_path("/app/Result/api_result/result-volume-40.nii", base_dir=str(project_root))
+    assert mapped == str(local_result)
+
+    # Keep original path when mapped host file does not exist.
+    unmapped = resolve_result_path("/app/Result/api_result/not-exists.nii", base_dir=str(project_root))
+    assert unmapped == "/app/Result/api_result/not-exists.nii"
