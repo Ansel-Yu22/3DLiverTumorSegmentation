@@ -20,14 +20,14 @@ from PyQt5.QtGui import QImage, QPixmap, QPalette, QColor
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 
 
-__version__ = '1.0.0'
+__version__ = '2.0.0'
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1038, 666)
-        MainWindow.setFixedSize(1038, 666)
+        MainWindow.setMinimumSize(980, 640)
         palette = QPalette()
         palette.setColor(QPalette.Window, QColor("#f5f5f5"))
         MainWindow.setPalette(palette)
