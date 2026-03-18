@@ -3,7 +3,36 @@
 This project provides 3D liver/tumor segmentation and exposes a FastAPI service
 for synchronous prediction and asynchronous jobs.
 
-## 1) Run API locally
+## 1) One-click start (API + UI)
+
+Use `run_all.ps1` to start backend API and desktop UI in two terminals.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_all.ps1
+```
+
+Optional parameters:
+
+```powershell
+# custom API address
+powershell -ExecutionPolicy Bypass -File .\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
+
+# custom python executable
+powershell -ExecutionPolicy Bypass -File .\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
+
+# skip waiting for /health
+powershell -ExecutionPolicy Bypass -File .\run_all.ps1 -SkipHealthCheck
+```
+
+Stop services:
+
+- press `Ctrl + C` in each terminal window (`LiverSeg API` and `LiverSeg UI`)
+
+### UI screenshot
+
+![UI Main](docs/images/ui-main.png)
+
+## 2) Run API locally
 
 ```powershell
 conda activate pytorch
@@ -13,7 +42,7 @@ python api_min.py
 
 Default service address: `http://127.0.0.1:8000`
 
-## 2) Main endpoints
+## 3) Main endpoints
 
 - `GET /health`
 - `POST /predict` (upload file, sync inference)
@@ -23,7 +52,7 @@ Default service address: `http://127.0.0.1:8000`
 
 More API details: [README_api.md](README_api.md)
 
-## 3) Docker deployment
+## 4) Docker deployment
 
 ### Build image
 
@@ -65,7 +94,7 @@ Stop and remove:
 docker compose down
 ```
 
-## 4) Tests and CI
+## 5) Tests and CI
 
 Run local API logic tests:
 
