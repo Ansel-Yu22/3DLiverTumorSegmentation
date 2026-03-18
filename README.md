@@ -23,7 +23,7 @@ Default service address: `http://127.0.0.1:8000`
 
 More API details: [README_api.md](README_api.md)
 
-## 3) Docker minimal deployment
+## 3) Docker deployment
 
 ### Build image
 
@@ -31,7 +31,7 @@ More API details: [README_api.md](README_api.md)
 docker build -t liver-seg-api:latest .
 ```
 
-### Run container
+### Run with docker run
 
 Model weights are not included in git. Mount your local model folder to
 `/app/Model/model` in the container.
@@ -45,6 +45,24 @@ docker run --rm -p 8000:8000 `
   -v D:/your_model_dir:/app/Model/model `
   -v D:/your_result_dir:/app/Result `
   liver-seg-api:latest
+```
+
+### Run with docker compose (recommended)
+
+```powershell
+docker compose up -d
+```
+
+View logs:
+
+```powershell
+docker compose logs -f api
+```
+
+Stop and remove:
+
+```powershell
+docker compose down
 ```
 
 ## 4) Tests and CI

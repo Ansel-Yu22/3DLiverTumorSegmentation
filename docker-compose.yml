@@ -1,0 +1,17 @@
+services:
+  api:
+    image: liver-seg-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_PATH: /app/Model/model/best_model.pth
+      RESULT_DIR: /app/Result/api_result
+      UPLOAD_DIR: /app/Result/uploads
+      DB_PATH: /app/Result/jobs.db
+    volumes:
+      - ./Model/model:/app/Model/model
+      - ./Result:/app/Result
+    restart: unless-stopped
