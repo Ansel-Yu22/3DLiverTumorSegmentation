@@ -43,6 +43,17 @@ executor = ThreadPoolExecutor(max_workers=1)
 security = HTTPBasic()
 
 
+def _safe_remove(path: Optional[str]) -> None:
+    if not path:
+        return
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        # Best-effort cleanup; do not fail request/job flow.
+        pass
+
+
 class PredictRequest(BaseModel):
     ct_path: str
 
@@ -220,6 +231,8 @@ def _run_job(job_id: str, upload_path: str, original_filename: str) -> None:
         elapsed_ms = int((time.time() - start) * 1000)
         with db.get_session() as session:
             crud.update_job(session, job_id, "failed", result_path=None, elapsed_ms=elapsed_ms, error=str(exc))
+    finally:
+        _safe_remove(upload_path)
 
 
 def _load_state_dict(model_path: str):
@@ -302,14 +315,17 @@ async def predict(file: UploadFile = File(...)):
     upload_path, original_filename = await _save_upload_file(file)
 
     start = time.time()
-    output_name = f"result-{Path(original_filename).name}"
-    result_path = run_predict(upload_path, output_name=output_name)
-    elapsed_ms = int((time.time() - start) * 1000)
-    return {
-        "filename": original_filename,
-        "result_path": result_path,
-        "elapsed_ms": elapsed_ms,
-    }
+    try:
+        output_name = f"result-{Path(original_filename).name}"
+        result_path = run_predict(upload_path, output_name=output_name)
+        elapsed_ms = int((time.time() - start) * 1000)
+        return {
+            "filename": original_filename,
+            "result_path": result_path,
+            "elapsed_ms": elapsed_ms,
+        }
+    finally:
+        _safe_remove(upload_path)
 
 
 @app.post("/predict_by_path")
@@ -326,7 +342,11 @@ async def create_job(file: UploadFile = File(...)):
     job_id = uuid.uuid4().hex
     with db.get_session() as session:
         crud.create_job(session, job_id, upload_path, original_filename)
-    executor.submit(_run_job, job_id, upload_path, original_filename)
+    try:
+        executor.submit(_run_job, job_id, upload_path, original_filename)
+    except Exception:
+        _safe_remove(upload_path)
+        raise
     return {"job_id": job_id, "status": "pending"}
 
 
@@ -336,7 +356,11 @@ async def create_my_job(file: UploadFile = File(...), current_user: dict = Depen
     job_id = uuid.uuid4().hex
     with db.get_session() as session:
         crud.create_job(session, job_id, upload_path, original_filename, user_id=current_user["id"])
-    executor.submit(_run_job, job_id, upload_path, original_filename)
+    try:
+        executor.submit(_run_job, job_id, upload_path, original_filename)
+    except Exception:
+        _safe_remove(upload_path)
+        raise
     return {"job_id": job_id, "status": "pending"}
 
 

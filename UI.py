@@ -24,6 +24,67 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog, QMessageBox
 __version__ = '2.0.0'
 
 
+class ApiClient(object):
+    def __init__(self, base_url=None):
+        self.base_url = ""
+        self.set_base_url(base_url)
+
+    def set_base_url(self, base_url):
+        value = (base_url or "").strip()
+        if not value:
+            value = "http://127.0.0.1:8000"
+        self.base_url = value.rstrip("/")
+
+    @staticmethod
+    def decode_json_response(response):
+        body = response.read().decode("utf-8")
+        return json.loads(body) if body else {}
+
+    @staticmethod
+    def read_http_error(exc):
+        try:
+            detail = exc.read().decode("utf-8", errors="ignore").strip()
+            return detail if detail else str(exc)
+        except Exception:
+            return str(exc)
+
+    def request_json(self, method, path, payload=None, auth_header=None, timeout=30):
+        url = f"{self.base_url}{path}"
+        data = None
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, method=method)
+        if payload is not None:
+            req.add_header("Content-Type", "application/json")
+        if auth_header:
+            req.add_header("Authorization", auth_header)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return self.decode_json_response(resp)
+
+    def submit_file_job(self, file_path, endpoint="/jobs", auth_header=None, timeout=120):
+        boundary = f"----PyQtBoundary{os.urandom(12).hex()}"
+        filename = os.path.basename(file_path)
+        with open(file_path, "rb") as f:
+            file_bytes = f.read()
+
+        payload = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+            "Content-Type: application/octet-stream\r\n\r\n"
+        ).encode("utf-8") + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
+
+        req = urllib.request.Request(f"{self.base_url}{endpoint}", data=payload, method="POST")
+        req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+        req.add_header("Content-Length", str(len(payload)))
+        if auth_header:
+            req.add_header("Authorization", auth_header)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return self.decode_json_response(resp)
+
+    def query_job(self, job_id, timeout=30):
+        return self.request_json("GET", f"/jobs/{job_id}", timeout=timeout)
+
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -266,6 +327,7 @@ class LoginGateDialog(QtWidgets.QDialog):
         self.setWindowTitle("登录 / 注册")
         self.setMinimumSize(460, 260)
         self.api_base_url = (default_api_base or "http://127.0.0.1:8000").rstrip("/")
+        self.api_client = ApiClient(self.api_base_url)
         self.username = None
         self.password = None
         self.user_id = None
@@ -307,17 +369,8 @@ class LoginGateDialog(QtWidgets.QDialog):
         self.btn_cancel.clicked.connect(self.reject)
 
     @staticmethod
-    def _decode_json_response(response):
-        body = response.read().decode("utf-8")
-        return json.loads(body) if body else {}
-
-    @staticmethod
     def _read_http_error(exc):
-        try:
-            detail = exc.read().decode("utf-8", errors="ignore").strip()
-            return detail if detail else str(exc)
-        except Exception:
-            return str(exc)
+        return ApiClient.read_http_error(exc)
 
     def _set_status(self, text, error=False):
         color = "#b91c1c" if error else "#065f46"
@@ -333,14 +386,11 @@ class LoginGateDialog(QtWidgets.QDialog):
         if not username or not password:
             raise RuntimeError("请输入用户名和密码")
         self.api_base_url = base
+        self.api_client.set_base_url(base)
         return base, username, password
 
     def _request_json(self, method, path, payload):
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(f"{self.api_base_url}{path}", data=data, method=method)
-        req.add_header("Content-Type", "application/json")
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            return self._decode_json_response(resp)
+        return self.api_client.request_json(method, path, payload=payload, timeout=20)
 
     def _on_register(self):
         try:
@@ -521,8 +571,12 @@ class MainWindow(QMainWindow):
         self.segmentation_path = None
         default_api = os.environ.get("SEG_API_BASE_URL", "http://127.0.0.1:8000")
         self.api_base_url = (api_base_url or default_api).rstrip("/")
+        self.api_client = ApiClient(self.api_base_url)
         self.api_poll_interval_sec = 2
         self.api_timeout_sec = 600
+        self.api_poll_timer = QtCore.QTimer(self)
+        self.api_poll_timer.timeout.connect(self._poll_api_job_once)
+        self.api_poll_context = None
         self.auth_username = auth_username
         self.auth_password = auth_password
         self.auth_user_id = auth_user_id
@@ -563,6 +617,7 @@ class MainWindow(QMainWindow):
         if not value:
             value = "http://127.0.0.1:8000"
         self.api_base_url = value.rstrip("/")
+        self.api_client.set_base_url(self.api_base_url)
         self._update_account_status()
 
     def is_user_logged_in(self):
@@ -575,17 +630,7 @@ class MainWindow(QMainWindow):
         return f"Basic {token}"
 
     def _request_json(self, method, path, payload=None, auth_header=None, timeout=30):
-        url = f"{self.api_base_url}{path}"
-        data = None
-        if payload is not None:
-            data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, method=method)
-        if payload is not None:
-            req.add_header("Content-Type", "application/json")
-        if auth_header:
-            req.add_header("Authorization", auth_header)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return self._decode_json_response(resp)
+        return self.api_client.request_json(method, path, payload=payload, auth_header=auth_header, timeout=timeout)
 
     def api_register_user(self, username, password):
         return self._request_json("POST", "/register", {"username": username, "password": password}, timeout=30)
@@ -650,41 +695,112 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _decode_json_response(response):
-        body = response.read().decode("utf-8")
-        return json.loads(body) if body else {}
+        return ApiClient.decode_json_response(response)
 
     @staticmethod
     def _read_http_error(exc):
-        try:
-            detail = exc.read().decode("utf-8", errors="ignore").strip()
-            return detail if detail else str(exc)
-        except Exception:
-            return str(exc)
+        return ApiClient.read_http_error(exc)
 
     def _submit_api_job(self, ct_path, endpoint="/jobs", auth_header=None):
-        boundary = f"----PyQtBoundary{os.urandom(12).hex()}"
-        filename = os.path.basename(ct_path)
-        with open(ct_path, "rb") as f:
-            file_bytes = f.read()
-        payload = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
-            "Content-Type: application/octet-stream\r\n\r\n"
-        ).encode("utf-8") + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
-        req = urllib.request.Request(f"{self.api_base_url}{endpoint}", data=payload, method="POST")
-        req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
-        req.add_header("Content-Length", str(len(payload)))
-        if auth_header:
-            req.add_header("Authorization", auth_header)
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            return self._decode_json_response(resp)
+        return self.api_client.submit_file_job(ct_path, endpoint=endpoint, auth_header=auth_header, timeout=120)
 
     def _query_api_job(self, job_id):
-        req = urllib.request.Request(f"{self.api_base_url}/jobs/{job_id}", method="GET")
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return self._decode_json_response(resp)
+        return self.api_client.query_job(job_id, timeout=30)
+
+    def _start_api_polling(self, job_id, ct_path, endpoint):
+        self.api_poll_context = {
+            "job_id": job_id,
+            "ct_path": ct_path,
+            "endpoint": endpoint,
+            "start_time": time.time(),
+        }
+        self.ui.pushButton_segmentation_api.setEnabled(False)
+        interval_ms = max(100, int(self.api_poll_interval_sec * 1000))
+        self.api_poll_timer.setInterval(interval_ms)
+        self.api_poll_timer.start()
+        self._poll_api_job_once()
+
+    def _stop_api_polling(self):
+        if self.api_poll_timer.isActive():
+            self.api_poll_timer.stop()
+        self.ui.pushButton_segmentation_api.setEnabled(True)
+        self.api_poll_context = None
+
+    def _poll_api_job_once(self):
+        context = self.api_poll_context
+        if not context:
+            self._stop_api_polling()
+            return
+
+        job_id = context["job_id"]
+        ct_path = context["ct_path"]
+        endpoint = context["endpoint"]
+        start_time = context["start_time"]
+
+        if time.time() - start_time > self.api_timeout_sec:
+            self._stop_api_polling()
+            QMessageBox.warning(self, "Warning", "Job polling timeout.", QMessageBox.Yes)
+            return
+
+        try:
+            job = self._query_api_job(job_id)
+        except urllib.error.HTTPError as exc:
+            self._stop_api_polling()
+            QMessageBox.critical(
+                self, "Error", f"Query failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+            )
+            return
+        except urllib.error.URLError as exc:
+            self._stop_api_polling()
+            QMessageBox.critical(self, "Error", f"Cannot connect API:\n{exc.reason}", QMessageBox.Yes)
+            return
+        except Exception as exc:
+            self._stop_api_polling()
+            QMessageBox.critical(self, "Error", f"Query failed:\n{exc}", QMessageBox.Yes)
+            return
+
+        status = job.get("status", "")
+        if status in {"pending", "running"}:
+            progress = min(95, 10 + int((time.time() - start_time) / self.api_timeout_sec * 90))
+            self.ui.progressBar.setValue(progress)
+            return
+
+        self._stop_api_polling()
+
+        if status == "succeeded":
+            result_path = job.get("result_path")
+            elapsed_ms = job.get("elapsed_ms")
+            if not result_path or not os.path.exists(result_path):
+                QMessageBox.critical(self, "Error", f"Job succeeded but result not found:\n{result_path}", QMessageBox.Yes)
+                return
+
+            self.segmentation_path = result_path
+            self.ct_name = os.path.basename(ct_path).split('-')[-1]
+            nii_img = nib.load(self.segmentation_path)
+            self.segmentation_data = nii_img.get_fdata()
+            self.display_slice()
+            self.ui.progressBar.setValue(100)
+            mode_text = "me/jobs" if endpoint == "/me/jobs" else "jobs"
+            QMessageBox.information(
+                self, "Info", f"API segmentation succeeded\nmode: {mode_text}\njob_id: {job_id}\nelapsed: {elapsed_ms} ms", QMessageBox.Yes
+            )
+            return
+
+        error_msg = job.get("error") or "unknown error"
+        elapsed_ms = job.get("elapsed_ms")
+        self.ui.progressBar.setValue(0)
+        QMessageBox.critical(
+            self,
+            "Error",
+            f"API segmentation failed\njob_id: {job_id}\nelapsed: {elapsed_ms} ms\nerror: {error_msg}",
+            QMessageBox.Yes,
+        )
 
     def segmentation_api(self):
+        if self.api_poll_context is not None:
+            QMessageBox.information(self, "Info", "An API job is already running.", QMessageBox.Yes)
+            return
+
         ct_path = self.ui.lineEdit_CT_path.text().strip()
         if not ct_path:
             QMessageBox.information(self, "Info", "Please load a CT file first.", QMessageBox.Yes)
@@ -725,60 +841,8 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Submit failed:\n{exc}", QMessageBox.Yes)
             return
 
-        start = time.time()
-        status = "pending"
-        job = {}
-        while status in {"pending", "running"}:
-            if time.time() - start > self.api_timeout_sec:
-                QMessageBox.warning(self, "Warning", "Job polling timeout.", QMessageBox.Yes)
-                return
-            time.sleep(self.api_poll_interval_sec)
-            QApplication.processEvents()
-            try:
-                job = self._query_api_job(job_id)
-            except urllib.error.HTTPError as exc:
-                QMessageBox.critical(
-                    self, "Error", f"Query failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
-                )
-                return
-            except urllib.error.URLError as exc:
-                QMessageBox.critical(self, "Error", f"Cannot connect API:\n{exc.reason}", QMessageBox.Yes)
-                return
-            except Exception as exc:
-                QMessageBox.critical(self, "Error", f"Query failed:\n{exc}", QMessageBox.Yes)
-                return
-
-            status = job.get("status", "")
-            progress = min(95, 10 + int((time.time() - start) / self.api_timeout_sec * 90))
-            self.ui.progressBar.setValue(progress)
-
-        if status == "succeeded":
-            result_path = job.get("result_path")
-            elapsed_ms = job.get("elapsed_ms")
-            if not result_path or not os.path.exists(result_path):
-                QMessageBox.critical(self, "Error", f"Job succeeded but result not found:\n{result_path}", QMessageBox.Yes)
-                return
-            self.segmentation_path = result_path
-            self.ct_name = os.path.basename(ct_path).split('-')[-1]
-            nii_img = nib.load(self.segmentation_path)
-            self.segmentation_data = nii_img.get_fdata()
-            self.display_slice()
-            self.ui.progressBar.setValue(100)
-            mode_text = "me/jobs" if endpoint == "/me/jobs" else "jobs"
-            QMessageBox.information(
-                self, "Info", f"API segmentation succeeded\nmode: {mode_text}\njob_id: {job_id}\nelapsed: {elapsed_ms} ms", QMessageBox.Yes
-            )
-            return
-
-        error_msg = job.get("error") or "unknown error"
-        elapsed_ms = job.get("elapsed_ms")
-        self.ui.progressBar.setValue(0)
-        QMessageBox.critical(
-            self,
-            "Error",
-            f"API segmentation failed\njob_id: {job_id}\nelapsed: {elapsed_ms} ms\nerror: {error_msg}",
-            QMessageBox.Yes,
-        )
+        self.ui.progressBar.setValue(10)
+        self._start_api_polling(job_id, ct_path, endpoint)
 
     def segmentation(self):
         if not self.ui.lineEdit_CT_path.text():
