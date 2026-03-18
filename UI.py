@@ -1,5 +1,6 @@
 import config
 from Model.Model import UNet
+import base64
 import json
 import os
 import sys
@@ -36,6 +37,10 @@ class Ui_MainWindow(object):
         about_action = QtWidgets.QAction('关于(&A)', MainWindow)
         help_menu.addAction(about_action)
         self.action_about = about_action
+        account_menu = menubar.addMenu("账号(&U)")
+        account_action = QtWidgets.QAction("账号中心(&C)", MainWindow)
+        account_menu.addAction(account_action)
+        self.action_account = account_action
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.kai_font_12 = QtGui.QFont("楷体", 12)
@@ -255,12 +260,252 @@ class Ui_MainWindow(object):
         MainWindow.statusBar()
 
 
+class LoginGateDialog(QtWidgets.QDialog):
+    def __init__(self, default_api_base):
+        super().__init__()
+        self.setWindowTitle("登录 / 注册")
+        self.setMinimumSize(460, 260)
+        self.api_base_url = (default_api_base or "http://127.0.0.1:8000").rstrip("/")
+        self.username = None
+        self.password = None
+        self.user_id = None
+
+        root = QtWidgets.QVBoxLayout(self)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(10)
+
+        form = QtWidgets.QFormLayout()
+        self.edit_api = QtWidgets.QLineEdit(self.api_base_url)
+        self.edit_username = QtWidgets.QLineEdit()
+        self.edit_password = QtWidgets.QLineEdit()
+        self.edit_password.setEchoMode(QtWidgets.QLineEdit.Password)
+
+        self.edit_api.setPlaceholderText("http://127.0.0.1:8000")
+        self.edit_username.setPlaceholderText("username")
+        self.edit_password.setPlaceholderText("password")
+
+        form.addRow("API Base URL", self.edit_api)
+        form.addRow("用户名", self.edit_username)
+        form.addRow("密码", self.edit_password)
+        root.addLayout(form)
+
+        row = QtWidgets.QHBoxLayout()
+        self.btn_register = QtWidgets.QPushButton("注册")
+        self.btn_login = QtWidgets.QPushButton("登录并进入系统")
+        self.btn_cancel = QtWidgets.QPushButton("退出")
+        row.addWidget(self.btn_register)
+        row.addWidget(self.btn_login)
+        row.addWidget(self.btn_cancel)
+        root.addLayout(row)
+
+        self.label_status = QtWidgets.QLabel("请输入账号信息")
+        self.label_status.setStyleSheet("color:#334155;")
+        root.addWidget(self.label_status)
+
+        self.btn_register.clicked.connect(self._on_register)
+        self.btn_login.clicked.connect(self._on_login)
+        self.btn_cancel.clicked.connect(self.reject)
+
+    @staticmethod
+    def _decode_json_response(response):
+        body = response.read().decode("utf-8")
+        return json.loads(body) if body else {}
+
+    @staticmethod
+    def _read_http_error(exc):
+        try:
+            detail = exc.read().decode("utf-8", errors="ignore").strip()
+            return detail if detail else str(exc)
+        except Exception:
+            return str(exc)
+
+    def _set_status(self, text, error=False):
+        color = "#b91c1c" if error else "#065f46"
+        self.label_status.setStyleSheet(f"color:{color};")
+        self.label_status.setText(text)
+
+    def _collect_inputs(self):
+        base = self.edit_api.text().strip().rstrip("/")
+        if not base:
+            base = "http://127.0.0.1:8000"
+        username = self.edit_username.text().strip()
+        password = self.edit_password.text()
+        if not username or not password:
+            raise RuntimeError("请输入用户名和密码")
+        self.api_base_url = base
+        return base, username, password
+
+    def _request_json(self, method, path, payload):
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(f"{self.api_base_url}{path}", data=data, method=method)
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return self._decode_json_response(resp)
+
+    def _on_register(self):
+        try:
+            _, username, password = self._collect_inputs()
+            data = self._request_json("POST", "/register", {"username": username, "password": password})
+            self._set_status(f"注册成功: {data.get('username', username)}")
+            QMessageBox.information(self, "提示", "注册成功，请点击登录进入系统。", QMessageBox.Yes)
+        except urllib.error.HTTPError as exc:
+            self._set_status(f"注册失败: HTTP {exc.code}", error=True)
+            QMessageBox.critical(self, "错误", f"注册失败 (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes)
+        except urllib.error.URLError as exc:
+            self._set_status("注册失败: 无法连接 API", error=True)
+            QMessageBox.critical(self, "错误", f"无法连接 API:\n{exc.reason}", QMessageBox.Yes)
+        except Exception as exc:
+            self._set_status(f"注册失败: {exc}", error=True)
+            QMessageBox.critical(self, "错误", f"注册失败:\n{exc}", QMessageBox.Yes)
+
+    def _on_login(self):
+        try:
+            _, username, password = self._collect_inputs()
+            data = self._request_json("POST", "/login", {"username": username, "password": password})
+            self.username = username
+            self.password = password
+            self.user_id = data.get("id")
+            self._set_status(f"登录成功: {username}")
+            self.accept()
+        except urllib.error.HTTPError as exc:
+            self._set_status(f"登录失败: HTTP {exc.code}", error=True)
+            QMessageBox.critical(self, "错误", f"登录失败 (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes)
+        except urllib.error.URLError as exc:
+            self._set_status("登录失败: 无法连接 API", error=True)
+            QMessageBox.critical(self, "错误", f"无法连接 API:\n{exc.reason}", QMessageBox.Yes)
+        except Exception as exc:
+            self._set_status(f"登录失败: {exc}", error=True)
+            QMessageBox.critical(self, "错误", f"登录失败:\n{exc}", QMessageBox.Yes)
+
+
+class AccountDialog(QtWidgets.QDialog):
+    def __init__(self, main_window):
+        super().__init__(main_window)
+        self.main = main_window
+        self.setWindowTitle("账号中心")
+        self.setMinimumSize(580, 500)
+
+        root = QtWidgets.QVBoxLayout(self)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(10)
+
+        form = QtWidgets.QFormLayout()
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(10)
+
+        self.edit_api_base = QtWidgets.QLineEdit(self.main.api_base_url)
+        self.edit_api_base.setPlaceholderText("http://127.0.0.1:8000")
+        form.addRow("API Base URL", self.edit_api_base)
+
+        self.view_username = QtWidgets.QLineEdit()
+        self.view_username.setReadOnly(True)
+        self.btn_copy_username = QtWidgets.QPushButton("Copy")
+        username_row = QtWidgets.QWidget()
+        username_layout = QtWidgets.QHBoxLayout(username_row)
+        username_layout.setContentsMargins(0, 0, 0, 0)
+        username_layout.setSpacing(8)
+        username_layout.addWidget(self.view_username, 1)
+        username_layout.addWidget(self.btn_copy_username)
+        form.addRow("Current Username", username_row)
+
+        self.view_password = QtWidgets.QLineEdit()
+        self.view_password.setReadOnly(True)
+        self.btn_copy_password = QtWidgets.QPushButton("Copy")
+        password_row = QtWidgets.QWidget()
+        password_layout = QtWidgets.QHBoxLayout(password_row)
+        password_layout.setContentsMargins(0, 0, 0, 0)
+        password_layout.setSpacing(8)
+        password_layout.addWidget(self.view_password, 1)
+        password_layout.addWidget(self.btn_copy_password)
+        form.addRow("Current Password", password_row)
+
+        root.addLayout(form)
+
+        row = QtWidgets.QHBoxLayout()
+        row.setSpacing(8)
+        self.btn_refresh_jobs = QtWidgets.QPushButton("刷新我的任务")
+        self.btn_close = QtWidgets.QPushButton("关闭")
+        row.addWidget(self.btn_refresh_jobs)
+        row.addWidget(self.btn_close)
+        root.addLayout(row)
+
+        self.label_status = QtWidgets.QLabel("")
+        self.label_status.setStyleSheet("color: #1f2937;")
+        root.addWidget(self.label_status)
+
+        self.jobs_text = QtWidgets.QPlainTextEdit()
+        self.jobs_text.setReadOnly(True)
+        self.jobs_text.setPlaceholderText("显示当前登录用户最近任务")
+        root.addWidget(self.jobs_text, 1)
+
+        self.btn_copy_username.clicked.connect(lambda: self._copy_to_clipboard(self.view_username.text(), "username"))
+        self.btn_copy_password.clicked.connect(lambda: self._copy_to_clipboard(self.view_password.text(), "password"))
+        self.btn_refresh_jobs.clicked.connect(self._on_refresh_jobs)
+        self.btn_close.clicked.connect(self.accept)
+
+        self._update_view()
+
+    def _sync_api_base_url(self):
+        base_url = self.edit_api_base.text().strip()
+        self.main.set_api_base_url(base_url)
+        self.edit_api_base.setText(self.main.api_base_url)
+
+    def _set_status(self, text, error=False):
+        color = "#b91c1c" if error else "#065f46"
+        self.label_status.setStyleSheet(f"color: {color};")
+        self.label_status.setText(text)
+
+    def _copy_to_clipboard(self, value, field_name):
+        QApplication.clipboard().setText(value or "")
+        self._set_status(f"{field_name} copied")
+
+    def _update_view(self):
+        self.edit_api_base.setText(self.main.api_base_url)
+        self.view_username.setText(self.main.auth_username or "")
+        self.view_password.setText(self.main.auth_password or "")
+        if self.main.is_user_logged_in():
+            self._set_status(f"已登录: {self.main.auth_username}")
+            self.btn_refresh_jobs.setEnabled(True)
+        else:
+            self._set_status("未登录", error=True)
+            self.btn_refresh_jobs.setEnabled(False)
+
+    def _render_jobs(self, items):
+        if not items:
+            self.jobs_text.setPlainText("暂无任务记录")
+            return
+        lines = []
+        for item in items:
+            lines.append(
+                f"{item.get('created_at', '-')}"
+                f" | {item.get('job_id', '-')}"
+                f" | {item.get('status', '-')}"
+                f" | elapsed_ms={item.get('elapsed_ms')}"
+            )
+        self.jobs_text.setPlainText("\n".join(lines))
+
+    def _on_refresh_jobs(self):
+        self._sync_api_base_url()
+        if not self.main.is_user_logged_in():
+            self._set_status("请先重新启动程序登录", error=True)
+            return
+        try:
+            payload = self.main.api_list_my_jobs(limit=30)
+            items = payload.get("items", [])
+            self._render_jobs(items)
+            self._set_status(f"任务已刷新: {len(items)} 条")
+        except Exception as exc:
+            self._set_status(f"刷新失败: {exc}", error=True)
+            QMessageBox.critical(self, "错误", f"刷新任务失败:\n{exc}", QMessageBox.Yes)
+
+
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, api_base_url=None, auth_username=None, auth_password=None, auth_user_id=None):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.action_about.triggered.connect(self.show_about)
+        self.ui.action_account.triggered.connect(self.open_account_dialog)
         self.init_slot()
         args = config.args
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -274,9 +519,15 @@ class MainWindow(QMainWindow):
         self.label_data = None
         self.segmentation_data = None
         self.segmentation_path = None
-        self.api_base_url = os.environ.get("SEG_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+        default_api = os.environ.get("SEG_API_BASE_URL", "http://127.0.0.1:8000")
+        self.api_base_url = (api_base_url or default_api).rstrip("/")
         self.api_poll_interval_sec = 2
         self.api_timeout_sec = 600
+        self.auth_username = auth_username
+        self.auth_password = auth_password
+        self.auth_user_id = auth_user_id
+        self.account_dialog = None
+        self._update_account_status()
 
     def show_about(self):
         html = (
@@ -300,6 +551,72 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_info.clicked.connect(self.info)
         self.ui.pushButton_next.clicked.connect(self.next_slice)
         self.ui.pushButton_previous.clicked.connect(self.previous_slice)
+
+    def _update_account_status(self):
+        if self.is_user_logged_in():
+            self.statusBar().showMessage(f"API: {self.api_base_url} | Logged in as: {self.auth_username}")
+        else:
+            self.statusBar().showMessage(f"API: {self.api_base_url} | Not logged in")
+
+    def set_api_base_url(self, base_url):
+        value = (base_url or "").strip()
+        if not value:
+            value = "http://127.0.0.1:8000"
+        self.api_base_url = value.rstrip("/")
+        self._update_account_status()
+
+    def is_user_logged_in(self):
+        return bool(self.auth_username and self.auth_password)
+
+    def _auth_header(self):
+        if not self.is_user_logged_in():
+            return None
+        token = base64.b64encode(f"{self.auth_username}:{self.auth_password}".encode("utf-8")).decode("ascii")
+        return f"Basic {token}"
+
+    def _request_json(self, method, path, payload=None, auth_header=None, timeout=30):
+        url = f"{self.api_base_url}{path}"
+        data = None
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, method=method)
+        if payload is not None:
+            req.add_header("Content-Type", "application/json")
+        if auth_header:
+            req.add_header("Authorization", auth_header)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return self._decode_json_response(resp)
+
+    def api_register_user(self, username, password):
+        return self._request_json("POST", "/register", {"username": username, "password": password}, timeout=30)
+
+    def api_login_user(self, username, password):
+        data = self._request_json("POST", "/login", {"username": username, "password": password}, timeout=30)
+        self.auth_username = username
+        self.auth_password = password
+        self.auth_user_id = data.get("id")
+        self._update_account_status()
+        return data
+
+    def api_logout_user(self):
+        self.auth_username = None
+        self.auth_password = None
+        self.auth_user_id = None
+        self._update_account_status()
+
+    def api_list_my_jobs(self, limit=20):
+        auth_header = self._auth_header()
+        if not auth_header:
+            raise RuntimeError("not logged in")
+        return self._request_json("GET", f"/me/jobs?limit={limit}", auth_header=auth_header, timeout=30)
+
+    def open_account_dialog(self):
+        if self.account_dialog is None:
+            self.account_dialog = AccountDialog(self)
+        self.account_dialog._update_view()
+        if self.is_user_logged_in():
+            self.account_dialog._on_refresh_jobs()
+        self.account_dialog.exec_()
 
     def load_CT(self):
         path, _ = QFileDialog.getOpenFileName(None, '选择CT影像', './CT/ct', 'CT File (*.nii *.nii.gz)')
@@ -344,7 +661,7 @@ class MainWindow(QMainWindow):
         except Exception:
             return str(exc)
 
-    def _submit_api_job(self, ct_path):
+    def _submit_api_job(self, ct_path, endpoint="/jobs", auth_header=None):
         boundary = f"----PyQtBoundary{os.urandom(12).hex()}"
         filename = os.path.basename(ct_path)
         with open(ct_path, "rb") as f:
@@ -354,9 +671,11 @@ class MainWindow(QMainWindow):
             f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
             "Content-Type: application/octet-stream\r\n\r\n"
         ).encode("utf-8") + file_bytes + f"\r\n--{boundary}--\r\n".encode("utf-8")
-        req = urllib.request.Request(f"{self.api_base_url}/jobs", data=payload, method="POST")
+        req = urllib.request.Request(f"{self.api_base_url}{endpoint}", data=payload, method="POST")
         req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
         req.add_header("Content-Length", str(len(payload)))
+        if auth_header:
+            req.add_header("Authorization", auth_header)
         with urllib.request.urlopen(req, timeout=120) as resp:
             return self._decode_json_response(resp)
 
@@ -378,12 +697,23 @@ class MainWindow(QMainWindow):
         self.ui.lineEdit_iou.setText("")
         self.ui.progressBar.setValue(5)
 
+        if not self.is_user_logged_in():
+            QMessageBox.warning(self, "Warning", "Please restart app and login first.", QMessageBox.Yes)
+            return
+
+        endpoint = "/me/jobs"
+        auth_header = self._auth_header()
+
         try:
-            submit_resp = self._submit_api_job(ct_path)
+            submit_resp = self._submit_api_job(ct_path, endpoint=endpoint, auth_header=auth_header)
             job_id = submit_resp.get("job_id")
             if not job_id:
-                raise RuntimeError(f"Invalid /jobs response: {submit_resp}")
+                raise RuntimeError(f"Invalid {endpoint} response: {submit_resp}")
         except urllib.error.HTTPError as exc:
+            if exc.code in {401, 403}:
+                self.api_logout_user()
+                QMessageBox.warning(self, "Warning", "Login expired. Please restart app and login again.", QMessageBox.Yes)
+                return
             QMessageBox.critical(
                 self, "Error", f"Submit failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
             )
@@ -434,8 +764,9 @@ class MainWindow(QMainWindow):
             self.segmentation_data = nii_img.get_fdata()
             self.display_slice()
             self.ui.progressBar.setValue(100)
+            mode_text = "me/jobs" if endpoint == "/me/jobs" else "jobs"
             QMessageBox.information(
-                self, "Info", f"API segmentation succeeded\njob_id: {job_id}\nelapsed: {elapsed_ms} ms", QMessageBox.Yes
+                self, "Info", f"API segmentation succeeded\nmode: {mode_text}\njob_id: {job_id}\nelapsed: {elapsed_ms} ms", QMessageBox.Yes
             )
             return
 
@@ -743,6 +1074,19 @@ if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
-    window = MainWindow()
+
+    default_api = os.environ.get("SEG_API_BASE_URL", "http://127.0.0.1:8000")
+    login_gate = LoginGateDialog(default_api)
+    if login_gate.exec_() != QtWidgets.QDialog.Accepted:
+        sys.exit(0)
+
+    window = MainWindow(
+        api_base_url=login_gate.api_base_url,
+        auth_username=login_gate.username,
+        auth_password=login_gate.password,
+        auth_user_id=login_gate.user_id,
+    )
     window.show()
     sys.exit(app.exec_())
+
+

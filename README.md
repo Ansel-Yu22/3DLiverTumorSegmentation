@@ -1,4 +1,4 @@
-﻿# 3DLiverTumorSegmentation
+# 3DLiverTumorSegmentation
 
 This project provides 3D liver/tumor segmentation and exposes a FastAPI service
 for synchronous prediction and asynchronous jobs.
@@ -23,6 +23,14 @@ powershell -ExecutionPolicy Bypass -File .\run_all.ps1 -PythonExe "D:\software\A
 # skip waiting for /health
 powershell -ExecutionPolicy Bypass -File .\run_all.ps1 -SkipHealthCheck
 ```
+
+Login flow after startup:
+
+1. A login/register dialog appears first.
+2. Register once (`/register`) if needed, then login (`/login`).
+3. After successful login, the main UI opens.
+4. Open `账号 -> 账号中心` to view current username/password.
+5. `账号中心` auto-refreshes recent jobs and supports one-click copy for username/password.
 
 Stop services:
 
@@ -54,10 +62,14 @@ python api_min.py
 ## 3) Main endpoints
 
 - `GET /health`
+- `POST /register` (username/password)
+- `POST /login` (username/password)
 - `POST /predict` (upload file, sync inference)
 - `POST /predict_by_path` (local path, sync inference)
 - `POST /jobs` (upload file, async job)
 - `GET /jobs/{job_id}` (query async job status)
+- `POST /me/jobs` (Basic auth, create current user's async job)
+- `GET /me/jobs` (Basic auth, list current user's jobs)
 
 More API details: [README_api.md](README_api.md)
 
