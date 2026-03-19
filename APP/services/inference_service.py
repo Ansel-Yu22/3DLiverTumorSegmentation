@@ -1,4 +1,4 @@
-import os
+﻿import os
 import shutil
 import time
 import uuid
@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 import crud
 import db
 from Model.Model import UNet
-from app import state
+from APP import state
 
 
 class InferenceDataset(Dataset):
@@ -199,4 +199,5 @@ def startup_init() -> None:
     loaded_state_dict = load_state_dict(state.MODEL_PATH)
     net.load_state_dict(loaded_state_dict)
     state.model = net
+
 

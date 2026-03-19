@@ -1,9 +1,9 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.routers import auth, health, jobs, predict
-from app.services import inference_service
+from APP.routers import auth, health, jobs, predict
+from APP.services import inference_service
 
 
 @asynccontextmanager
@@ -17,4 +17,5 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(predict.router)
 app.include_router(jobs.router)
+
 

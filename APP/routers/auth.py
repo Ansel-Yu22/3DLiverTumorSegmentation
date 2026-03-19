@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException
+﻿from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 import crud
 import db
-from app.services import auth_service
+from APP.services import auth_service
 
 
 router = APIRouter()
@@ -43,4 +43,5 @@ def login(req: UserAuthRequest):
             headers={"WWW-Authenticate": "Basic"},
         )
     return {"id": user.id, "username": user.username}
+
 

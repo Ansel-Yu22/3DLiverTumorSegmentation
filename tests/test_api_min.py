@@ -1,4 +1,4 @@
-import io
+﻿import io
 import time
 from pathlib import Path
 
@@ -6,9 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 import db
-from app import state
-from app.main import app
-from app.services import inference_service
+from APP import state
+from APP.main import app
+from APP.services import inference_service
 from path_utils import resolve_result_path
 
 
@@ -176,3 +176,4 @@ def test_resolve_result_path_container_mapping(tmp_path):
     # Keep original path when mapped host file does not exist.
     unmapped = resolve_result_path("/app/Result/api_result/not-exists.nii", base_dir=str(project_root))
     assert unmapped == "/app/Result/api_result/not-exists.nii"
+

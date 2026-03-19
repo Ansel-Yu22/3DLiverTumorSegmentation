@@ -1,10 +1,10 @@
-import time
+﻿import time
 from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel
 
-from app.services import inference_service
+from APP.services import inference_service
 
 
 router = APIRouter()
@@ -38,3 +38,4 @@ def predict_by_path(req: PredictRequest):
     result_path = inference_service.run_predict(req.ct_path)
     elapsed_ms = int((time.time() - start) * 1000)
     return {"result_path": result_path, "elapsed_ms": elapsed_ms}
+

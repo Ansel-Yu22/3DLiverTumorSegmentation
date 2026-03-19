@@ -1,13 +1,13 @@
-import uuid
+﻿import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 import crud
 import db
-from app import state
-from app.deps import require_user
-from app.services import inference_service
+from APP import state
+from APP.deps import require_user
+from APP.services import inference_service
 
 
 router = APIRouter()
@@ -56,4 +56,5 @@ def list_my_jobs(limit: int = 20, current_user: dict = Depends(require_user)):
     with db.get_session() as session:
         items = crud.list_jobs(session, user_id=current_user["id"], limit=limit)
     return {"items": items, "count": len(items)}
+
 

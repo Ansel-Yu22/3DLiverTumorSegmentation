@@ -1,10 +1,10 @@
-from fastapi import Depends, HTTPException
+﻿from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBasicCredentials
 
 import crud
 import db
-from app import state
-from app.services import auth_service
+from APP import state
+from APP.services import auth_service
 
 
 def require_user(credentials: HTTPBasicCredentials = Depends(state.security)) -> dict:
@@ -19,4 +19,5 @@ def require_user(credentials: HTTPBasicCredentials = Depends(state.security)) ->
             headers={"WWW-Authenticate": "Basic"},
         )
     return {"id": user.id, "username": user.username}
+
 
