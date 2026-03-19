@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements-api.txt /app/requirements-api.txt
+COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip && \
-    grep -v '^torch==' /app/requirements-api.txt > /app/requirements-api-docker.txt && \
-    pip install -r /app/requirements-api-docker.txt && \
+    grep -v '^torch==' /app/requirements.txt > /app/requirements-docker.txt && \
+    pip install -r /app/requirements-docker.txt && \
     pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
 
 COPY api_min.py crud.py db.py models.py /app/

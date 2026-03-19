@@ -66,7 +66,7 @@ Recommended screenshots to show in resume/portfolio:
 
 ```powershell
 conda activate pytorch
-python -m pip install -r requirements-api.txt
+python -m pip install -r requirements.txt
 python api_min.py
 ```
 
@@ -93,7 +93,33 @@ python api_min.py
 - `POST /me/jobs` (Basic auth, create current user's async job)
 - `GET /me/jobs` (Basic auth, list current user's jobs)
 
-More API details: [README_api.md](README_api.md)
+Notes:
+
+- If `DB_URL` is set, it has higher priority than `DB_PATH`.
+- `mysql://...` is also accepted and will be auto-converted to `mysql+pymysql://...`.
+
+### API helper scripts
+
+Unified helper (recommended):
+
+```powershell
+# sync predict
+powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode predict
+
+# async job (verbose)
+powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job
+
+# async job (concise)
+powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job_simple
+```
+
+Legacy wrappers are still available:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run_predict.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\run_job.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\run_job_simple.ps1
+```
 
 ## 5) Docker deployment
 
@@ -146,7 +172,7 @@ docker compose down
 Run local API logic tests:
 
 ```powershell
-python -m pip install -r requirements-dev.txt
+python -m pip install -r requirements.txt
 python -m pytest -q tests/test_api_min.py
 ```
 
