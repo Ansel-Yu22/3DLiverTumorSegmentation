@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "api_min.py"
+      - "app/**"
       - "crud.py"
       - "db.py"
       - "models.py"
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - "api_min.py"
+      - "app/**"
       - "crud.py"
       - "db.py"
       - "models.py"

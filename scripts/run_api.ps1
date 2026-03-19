@@ -9,6 +9,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 $scriptStart = Get-Date
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ((Split-Path -Leaf $ScriptDir) -eq "scripts") {
+    $ProjectRoot = Split-Path -Parent $ScriptDir
+}
+else {
+    $ProjectRoot = $ScriptDir
+}
+Set-Location $ProjectRoot
 
 function Get-WallMs([datetime]$start, [datetime]$end) {
     return [int](New-TimeSpan -Start $start -End $end).TotalMilliseconds

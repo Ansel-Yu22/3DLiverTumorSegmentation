@@ -7,7 +7,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ((Split-Path -Leaf $ScriptDir) -eq "scripts") {
+    $ProjectRoot = Split-Path -Parent $ScriptDir
+}
+else {
+    $ProjectRoot = $ScriptDir
+}
 Set-Location $ProjectRoot
 
 function Escape-SingleQuote([string]$text) {

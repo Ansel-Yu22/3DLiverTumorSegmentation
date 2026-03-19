@@ -5,7 +5,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-import api_min
+import db
+from app import state
+from app.main import app
+from app.services import inference_service
 from path_utils import resolve_result_path
 
 
@@ -15,9 +18,10 @@ def client(tmp_path, monkeypatch):
     upload_dir = tmp_path / "uploads"
     db_path = tmp_path / "jobs.db"
 
-    monkeypatch.setattr(api_min, "RESULT_DIR", str(result_dir))
-    monkeypatch.setattr(api_min, "UPLOAD_DIR", str(upload_dir))
-    monkeypatch.setattr(api_min, "DB_PATH", str(db_path))
+    monkeypatch.setattr(state, "RESULT_DIR", str(result_dir))
+    monkeypatch.setattr(state, "UPLOAD_DIR", str(upload_dir))
+    monkeypatch.setattr(state, "DB_PATH", str(db_path))
+    monkeypatch.setattr(state, "DB_URL", "")
 
     def fake_run_predict(ct_path: str, output_name=None) -> str:
         out_name = output_name if output_name else f"result-{Path(ct_path).name}"
@@ -26,17 +30,17 @@ def client(tmp_path, monkeypatch):
         out_path.write_bytes(b"dummy-result")
         return str(out_path)
 
-    monkeypatch.setattr(api_min, "run_predict", fake_run_predict)
+    monkeypatch.setattr(inference_service, "run_predict", fake_run_predict)
 
     def fake_startup():
         result_dir.mkdir(parents=True, exist_ok=True)
         upload_dir.mkdir(parents=True, exist_ok=True)
-        api_min.db.init_db(api_min.DB_PATH)
-        api_min.model = object()
+        db.init_db(state.DB_PATH)
+        state.model = object()
 
-    monkeypatch.setattr(api_min, "_startup_init", fake_startup)
+    monkeypatch.setattr(inference_service, "startup_init", fake_startup)
 
-    with TestClient(api_min.app) as test_client:
+    with TestClient(app) as test_client:
         yield test_client
 
 
@@ -83,7 +87,7 @@ def test_predict_upload(client):
     result_path = Path(data["result_path"])
     assert result_path.exists()
     # Uploaded temp file should be cleaned after sync inference.
-    assert not any(Path(api_min.UPLOAD_DIR).iterdir())
+    assert not any(Path(state.UPLOAD_DIR).iterdir())
 
 
 def test_jobs_submit_and_poll(client):
@@ -115,7 +119,7 @@ def test_jobs_submit_and_poll(client):
     assert final["elapsed_ms"] >= 0
     assert Path(final["result_path"]).exists()
     # Uploaded temp file should be cleaned after async job completion.
-    assert not any(Path(api_min.UPLOAD_DIR).iterdir())
+    assert not any(Path(state.UPLOAD_DIR).iterdir())
 
 
 def test_me_jobs_submit_and_list(client):
@@ -151,7 +155,7 @@ def test_me_jobs_submit_and_list(client):
     assert payload["count"] >= 1
     assert any(item["job_id"] == job_id for item in payload["items"])
     # Uploaded temp file should be cleaned after async job completion.
-    assert not any(Path(api_min.UPLOAD_DIR).iterdir())
+    assert not any(Path(state.UPLOAD_DIR).iterdir())
 
 
 def test_job_not_found(client):
