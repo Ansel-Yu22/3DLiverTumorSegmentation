@@ -113,14 +113,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job
 powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job_simple
 ```
 
-Legacy wrappers are still available:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run_predict.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\run_job.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\run_job_simple.ps1
-```
-
 ## 5) Docker deployment
 
 ### Build image
@@ -146,7 +138,7 @@ docker run --rm -p 8000:8000 `
 ```
 
 Note: when API runs inside Docker, returned paths like `/app/Result/...` are
-container paths. `scripts/run_job.ps1` will try to map `/app/...` to current local
+container paths. `scripts/run_api.ps1` will try to map `/app/...` to current local
 directory automatically.
 
 ### Run with docker compose (recommended)
