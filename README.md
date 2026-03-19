@@ -151,3 +151,19 @@ python -m pytest -q tests/test_api_min.py
 ```
 
 GitHub Actions workflow `API Tests` runs automatically on push/PR.
+
+## 7) Offline ML scripts
+
+Training/evaluation/preprocessing scripts are organized under `ml/`:
+
+- `ml/train.py`
+- `ml/test.py`
+- `ml/preprocess.py`
+
+Backward-compatible root entrypoints are kept, so existing commands still work:
+
+```powershell
+python train.py
+python test.py
+python preprocess.py
+```
