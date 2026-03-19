@@ -13,32 +13,27 @@ from APP.services import inference_service
 router = APIRouter()
 
 
-@router.post("/jobs")
-def create_job(file: UploadFile = File(...)):
+def _submit_job(file: UploadFile, user_id=None) -> dict:
     upload_path, original_filename = inference_service.save_upload_file(file)
     job_id = uuid.uuid4().hex
     with db.get_session() as session:
-        crud.create_job(session, job_id, upload_path, original_filename)
+        crud.create_job(session, job_id, upload_path, original_filename, user_id=user_id)
     try:
         state.executor.submit(inference_service.run_job, job_id, upload_path, Path(original_filename).name)
     except Exception:
         inference_service.safe_remove(upload_path)
         raise
     return {"job_id": job_id, "status": "pending"}
+
+
+@router.post("/jobs")
+def create_job(file: UploadFile = File(...)):
+    return _submit_job(file)
 
 
 @router.post("/me/jobs")
 def create_my_job(file: UploadFile = File(...), current_user: dict = Depends(require_user)):
-    upload_path, original_filename = inference_service.save_upload_file(file)
-    job_id = uuid.uuid4().hex
-    with db.get_session() as session:
-        crud.create_job(session, job_id, upload_path, original_filename, user_id=current_user["id"])
-    try:
-        state.executor.submit(inference_service.run_job, job_id, upload_path, Path(original_filename).name)
-    except Exception:
-        inference_service.safe_remove(upload_path)
-        raise
-    return {"job_id": job_id, "status": "pending"}
+    return _submit_job(file, user_id=current_user["id"])
 
 
 @router.get("/jobs/{job_id}")
