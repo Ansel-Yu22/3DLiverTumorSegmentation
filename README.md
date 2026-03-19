@@ -1,4 +1,4 @@
-﻿# 3DLiverTumorSegmentation
+# 3DLiverTumorSegmentation
 
 This project provides 3D liver/tumor segmentation and exposes a FastAPI service
 for synchronous prediction and asynchronous jobs.
@@ -29,8 +29,8 @@ Login flow after startup:
 1. A login/register dialog appears first.
 2. Register once (`/register`) if needed, then login (`/login`).
 3. After successful login, the main UI opens.
-4. Open `璐﹀彿 -> 璐﹀彿涓績` to view current username/password.
-5. `璐﹀彿涓績` auto-refreshes recent jobs and supports one-click copy for username/password.
+4. Open `账号 -> 账号中心` to view current username/password.
+5. `账号中心` auto-refreshes recent jobs and supports one-click copy for username/password.
 
 Stop services:
 
@@ -52,7 +52,7 @@ flowchart LR
   F --> G["Poll GET /jobs/{job_id}"]
   G --> H["Status = succeeded"]
   H --> I["Show segmentation result in UI"]
-  C --> J["Open 璐﹀彿涓績"]
+  C --> J["Open 账号中心"]
   J --> K["Auto-refresh GET /me/jobs"]
 ```
 
@@ -93,7 +93,7 @@ python api_min.py
 - `POST /me/jobs` (Basic auth, create current user's async job)
 - `GET /me/jobs` (Basic auth, list current user's jobs)
 
-More API details: [README_api.md](docs/api/README_api.md)
+More API details: [README_api.md](README_api.md)
 
 ## 5) Docker deployment
 
@@ -167,4 +167,3 @@ python train.py
 python test.py
 python preprocess.py
 ```
-
