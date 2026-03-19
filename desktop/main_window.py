@@ -2,6 +2,7 @@ import base64
 import os
 import time
 import urllib.error
+from datetime import datetime
 
 import config
 import nibabel as nib
@@ -34,14 +35,14 @@ class Ui_MainWindow(object):
         palette.setColor(QPalette.Window, QColor("#f5f5f5"))
         MainWindow.setPalette(palette)
         menubar = MainWindow.menuBar()
-        help_menu = menubar.addMenu('帮助(&H)')
-        about_action = QtWidgets.QAction('关于(&A)', MainWindow)
-        help_menu.addAction(about_action)
-        self.action_about = about_action
         account_menu = menubar.addMenu("账号(&U)")
         account_action = QtWidgets.QAction("账号中心(&C)", MainWindow)
         account_menu.addAction(account_action)
         self.action_account = account_action
+        help_menu = menubar.addMenu('帮助(&H)')
+        about_action = QtWidgets.QAction('关于(&A)', MainWindow)
+        help_menu.addAction(about_action)
+        self.action_about = about_action
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.kai_font_12 = QtGui.QFont("楷体", 12)
@@ -208,20 +209,20 @@ class Ui_MainWindow(object):
         self.pushButton_segmentation_api.setFont(self.kai_font_14)
         self.pushButton_segmentation_api.setText("API分割")
         self.pushButton_segmentation_api.setStyleSheet(self.action_primary_style)
-        self.pushButton_segmentation_api.setToolTip("Run async segmentation via backend API")
-        self.pushButton_segmentation.setText("点击分割")
+        self.pushButton_segmentation_api.setToolTip("通过后端 API 执行异步分割")
+        self.pushButton_segmentation.setText("分割")
         self.pushButton_segmentation.setStyleSheet(self.action_primary_style)
         self.pushButton_segmentation.setToolTip("执行肝脏肿瘤CT分割")
         self.pushButton_save = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_save.setGeometry(QtCore.QRect(858, 162, 150, 46))
         self.pushButton_save.setFont(self.kai_font_14)
-        self.pushButton_save.setText("点击保存")
+        self.pushButton_save.setText("保存")
         self.pushButton_save.setStyleSheet(self.action_secondary_style)
         self.pushButton_save.setToolTip("保存分割结果")
         self.pushButton_info = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_info.setGeometry(QtCore.QRect(858, 218, 150, 46))
         self.pushButton_info.setFont(self.kai_font_14)
-        self.pushButton_info.setText("点击评价")
+        self.pushButton_info.setText("评价")
         self.pushButton_info.setStyleSheet(self.action_secondary_style)
         self.pushButton_info.setToolTip("显示分割指标")
         self.label_metrics_title = QtWidgets.QLabel(self.centralwidget)
@@ -245,7 +246,9 @@ class Ui_MainWindow(object):
         self.lineEdit_Dice.setFont(self.times_font_14)
         self.lineEdit_Dice.setAlignment(Qt.AlignCenter)
         self.lineEdit_Dice.setReadOnly(True)
-        self.lineEdit_Dice.setStyleSheet(self.lineedit_style)
+        self.lineEdit_Dice.setStyleSheet("border: none; background: #f8fafc; border-radius: 8px; padding: 4px 6px; color: #0f172a;")
+        self.lineEdit_Dice.setFrame(False)
+        self.lineEdit_Dice.setFocusPolicy(Qt.NoFocus)
         self.label_jaccard = QtWidgets.QLabel(self.groupBox)
         self.label_jaccard.setGeometry(QtCore.QRect(20, 142, 110, 30))
         self.label_jaccard.setFont(self.times_font_14)
@@ -255,10 +258,19 @@ class Ui_MainWindow(object):
         self.lineEdit_iou.setFont(self.times_font_14)
         self.lineEdit_iou.setAlignment(Qt.AlignCenter)
         self.lineEdit_iou.setReadOnly(True)
-        self.lineEdit_iou.setStyleSheet(self.lineedit_style)
+        self.lineEdit_iou.setStyleSheet("border: none; background: #f8fafc; border-radius: 8px; padding: 4px 6px; color: #0f172a;")
+        self.lineEdit_iou.setFrame(False)
+        self.lineEdit_iou.setFocusPolicy(Qt.NoFocus)
         MainWindow.setCentralWidget(self.centralwidget)
         MainWindow.setWindowTitle("肝脏肿瘤CT分割系统")
-        MainWindow.statusBar()
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        self.statusbar.setSizeGripEnabled(False)
+        self.statusbar.setMinimumHeight(24)
+        self.statusbar.setStyleSheet(
+            "QStatusBar { border-top: 1px solid #c8d3df; background: #f8fafc; color: #334155; }"
+        )
+        MainWindow.setStatusBar(self.statusbar)
 
 class MainWindow(QMainWindow):
     def __init__(self, api_base_url=None, auth_username=None, auth_password=None, auth_user_id=None):
@@ -292,7 +304,9 @@ class MainWindow(QMainWindow):
         self.auth_password = auth_password
         self.auth_user_id = auth_user_id
         self.account_dialog = None
+        self._init_status_bar()
         self._update_account_status()
+        self._refresh_action_buttons()
 
     def show_about(self):
         html = (
@@ -300,7 +314,7 @@ class MainWindow(QMainWindow):
             f'<p><b>版本：</b>{__version__}</p>'
             '<p><b>作者：</b>于波</p>'
             '<p><b>机构：</b>桂林电子科技大学</p>'
-            f'<p><b>编译日期：</b>2025-05-20</p>'
+            f'<p><b>编译日期：</b>2026-03-20</p>'
             '<hr>'
             '<p>本系统基于LDR-UNet模型构建，实现肝脏及肿瘤CT影像的自动分割、'
             '分割结果保存与评估等功能。</p>'
@@ -317,11 +331,66 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_next.clicked.connect(self.next_slice)
         self.ui.pushButton_previous.clicked.connect(self.previous_slice)
 
+    def _refresh_action_buttons(self):
+        has_ct = bool(self.ui.lineEdit_CT_path.text().strip())
+        has_result = self.segmentation_data is not None and bool(self.segmentation_path)
+        is_polling = self.api_poll_context is not None and self.api_poll_timer.isActive()
+        self.ui.pushButton_segmentation.setEnabled(has_ct)
+        self.ui.pushButton_segmentation_api.setEnabled(has_ct and not is_polling)
+        self.ui.pushButton_save.setEnabled(has_result)
+        self.ui.pushButton_info.setEnabled(has_result)
+
+    def _init_status_bar(self):
+        status_bar = self.statusBar()
+        status_bar.setVisible(True)
+        if not hasattr(self, "status_left_label"):
+            self.status_left_label = QtWidgets.QLabel("")
+            self.status_left_label.setStyleSheet("padding-left: 6px; color: #334155;")
+            status_bar.addWidget(self.status_left_label, 1)
+        if not hasattr(self, "status_time_label"):
+            self.status_time_label = QtWidgets.QLabel("")
+            self.status_time_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.status_time_label.setStyleSheet("padding-right: 6px; color: #64748b;")
+            status_bar.addPermanentWidget(self.status_time_label)
+        if not hasattr(self, "status_clock_timer"):
+            self.status_clock_timer = QtCore.QTimer(self)
+            self.status_clock_timer.timeout.connect(self._update_status_time)
+            self.status_clock_timer.start(1000)
+        self._update_status_time()
+
+    def _update_status_time(self):
+        if hasattr(self, "status_time_label"):
+            self.status_time_label.setText(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+    @staticmethod
+    def _format_elapsed_seconds(elapsed_ms):
+        try:
+            if elapsed_ms is None:
+                return "-"
+            return f"{float(elapsed_ms) / 1000.0:.2f}"
+        except (TypeError, ValueError):
+            return "-"
+
+    def _show_segmentation_success(self, mode_text, job_id, elapsed_ms):
+        elapsed_s = self._format_elapsed_seconds(elapsed_ms)
+        QMessageBox.information(
+            self,
+            "提示",
+            f"分割成功\n模式: {mode_text}\n任务ID: {job_id}\n耗时: {elapsed_s} s",
+            QMessageBox.Yes,
+        )
+
     def _update_account_status(self):
+        status_bar = self.statusBar()
+        status_bar.setVisible(True)
+        if not hasattr(self, "status_left_label"):
+            self._init_status_bar()
         if self.is_user_logged_in():
-            self.statusBar().showMessage(f"API: {self.api_base_url} | Logged in as: {self.auth_username}")
+            status_text = f"API: {self.api_base_url} | 已登录: {self.auth_username}"
         else:
-            self.statusBar().showMessage(f"API: {self.api_base_url} | Not logged in")
+            status_text = f"API: {self.api_base_url} | 未登录"
+        self.status_left_label.setText(status_text)
+        status_bar.clearMessage()
 
     def set_api_base_url(self, base_url):
         value = (base_url or "").strip()
@@ -343,17 +412,6 @@ class MainWindow(QMainWindow):
     def _request_json(self, method, path, payload=None, auth_header=None, timeout=30):
         return self.api_client.request_json(method, path, payload=payload, auth_header=auth_header, timeout=timeout)
 
-    def api_register_user(self, username, password):
-        return self._request_json("POST", "/register", {"username": username, "password": password}, timeout=30)
-
-    def api_login_user(self, username, password):
-        data = self._request_json("POST", "/login", {"username": username, "password": password}, timeout=30)
-        self.auth_username = username
-        self.auth_password = password
-        self.auth_user_id = data.get("id")
-        self._update_account_status()
-        return data
-
     def api_logout_user(self):
         self.auth_username = None
         self.auth_password = None
@@ -363,7 +421,7 @@ class MainWindow(QMainWindow):
     def api_list_my_jobs(self, limit=20):
         auth_header = self._auth_header()
         if not auth_header:
-            raise RuntimeError("not logged in")
+            raise RuntimeError("未登录")
         return self._request_json("GET", f"/me/jobs?limit={limit}", auth_header=auth_header, timeout=30)
 
     def open_account_dialog(self):
@@ -374,6 +432,12 @@ class MainWindow(QMainWindow):
             self.account_dialog._on_refresh_jobs()
         self.account_dialog.exec_()
 
+    def _load_volume_data(self, path, path_line_edit, size_line_edit):
+        path_line_edit.setText(path)
+        file_size = os.path.getsize(path)
+        size_line_edit.setText(f"{file_size / (1024 * 1024):.2f} MB")
+        return nib.load(path).get_fdata()
+
     def load_CT(self):
         path, _ = QFileDialog.getOpenFileName(None, '选择CT影像', './CT/ct', 'CT File (*.nii *.nii.gz)')
         if not path:
@@ -381,32 +445,20 @@ class MainWindow(QMainWindow):
         self.ui.lineEdit_Dice.setText("")
         self.ui.lineEdit_iou.setText("")
         self.ui.progressBar.setValue(0)
-        self.ui.lineEdit_CT_path.setText(path)
-        file_size = os.path.getsize(path)
-        size_in_mb = f"{file_size / (1024 * 1024):.2f} MB"
-        self.ui.lineEdit_Ct_size.setText(size_in_mb)
-        nii_img = nib.load(path)
-        self.ct_data = nii_img.get_fdata()
+        self.ct_data = self._load_volume_data(path, self.ui.lineEdit_CT_path, self.ui.lineEdit_Ct_size)
         self.current_slice_index = self.ct_data.shape[2] // 2
         self.segmentation_data = None
+        self.segmentation_path = None
         self.display_slice()
+        self._refresh_action_buttons()
 
     def load_label(self):
         path, _ = QFileDialog.getOpenFileName(None, '选择标注影像', './CT/label', 'Label File (*.nii *.nii.gz)')
         if not path:
             return
-        self.ui.lineEdit_label_path.setText(path)
-        file_size = os.path.getsize(path)
-        fm_size_in_mb = f"{file_size / (1024 * 1024):.2f} MB"
-        self.ui.lineEdit_label_size.setText(fm_size_in_mb)
-        nii_img = nib.load(path)
-        self.label_data = nii_img.get_fdata()
+        self.label_data = self._load_volume_data(path, self.ui.lineEdit_label_path, self.ui.lineEdit_label_size)
         if self.ct_data is not None:
             self.display_slice()
-
-    @staticmethod
-    def _decode_json_response(response):
-        return ApiClient.decode_json_response(response)
 
     @staticmethod
     def _read_http_error(exc):
@@ -429,17 +481,17 @@ class MainWindow(QMainWindow):
             "endpoint": endpoint,
             "start_time": time.time(),
         }
-        self.ui.pushButton_segmentation_api.setEnabled(False)
         interval_ms = max(100, int(self.api_poll_interval_sec * 1000))
         self.api_poll_timer.setInterval(interval_ms)
         self.api_poll_timer.start()
+        self._refresh_action_buttons()
         self._poll_api_job_once()
 
     def _stop_api_polling(self):
         if self.api_poll_timer.isActive():
             self.api_poll_timer.stop()
-        self.ui.pushButton_segmentation_api.setEnabled(True)
         self.api_poll_context = None
+        self._refresh_action_buttons()
 
     def _poll_api_job_once(self):
         context = self.api_poll_context
@@ -454,7 +506,7 @@ class MainWindow(QMainWindow):
 
         if time.time() - start_time > self.api_timeout_sec:
             self._stop_api_polling()
-            QMessageBox.warning(self, "Warning", "Job polling timeout.", QMessageBox.Yes)
+            QMessageBox.warning(self, "警告", "任务轮询超时。", QMessageBox.Yes)
             return
 
         try:
@@ -462,16 +514,16 @@ class MainWindow(QMainWindow):
         except urllib.error.HTTPError as exc:
             self._stop_api_polling()
             QMessageBox.critical(
-                self, "Error", f"Query failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+                self, "错误", f"查询失败 (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
             )
             return
         except urllib.error.URLError as exc:
             self._stop_api_polling()
-            QMessageBox.critical(self, "Error", f"Cannot connect API:\n{exc.reason}", QMessageBox.Yes)
+            QMessageBox.critical(self, "错误", f"无法连接 API:\n{exc.reason}", QMessageBox.Yes)
             return
         except Exception as exc:
             self._stop_api_polling()
-            QMessageBox.critical(self, "Error", f"Query failed:\n{exc}", QMessageBox.Yes)
+            QMessageBox.critical(self, "错误", f"查询失败:\n{exc}", QMessageBox.Yes)
             return
 
         status = job.get("status", "")
@@ -486,7 +538,7 @@ class MainWindow(QMainWindow):
             result_path = self._resolve_api_result_path(job.get("result_path"))
             elapsed_ms = job.get("elapsed_ms")
             if not result_path or not os.path.exists(result_path):
-                QMessageBox.critical(self, "Error", f"Job succeeded but result not found:\n{result_path}", QMessageBox.Yes)
+                QMessageBox.critical(self, "错误", f"任务成功但结果文件不存在:\n{result_path}", QMessageBox.Yes)
                 return
 
             self.segmentation_path = result_path
@@ -494,20 +546,19 @@ class MainWindow(QMainWindow):
             nii_img = nib.load(self.segmentation_path)
             self.segmentation_data = nii_img.get_fdata()
             self.display_slice()
+            self._refresh_action_buttons()
             self.ui.progressBar.setValue(100)
             mode_text = "me/jobs" if endpoint == "/me/jobs" else "jobs"
-            QMessageBox.information(
-                self, "Info", f"API segmentation succeeded\nmode: {mode_text}\njob_id: {job_id}\nelapsed: {elapsed_ms} ms", QMessageBox.Yes
-            )
+            self._show_segmentation_success(mode_text, job_id, elapsed_ms)
             return
 
-        error_msg = job.get("error") or "unknown error"
+        error_msg = job.get("error") or "未知错误"
         elapsed_ms = job.get("elapsed_ms")
         self.ui.progressBar.setValue(0)
         QMessageBox.critical(
             self,
-            "Error",
-            f"API segmentation failed\njob_id: {job_id}\nelapsed: {elapsed_ms} ms\nerror: {error_msg}",
+            "错误",
+            f"API 分割失败\n任务ID: {job_id}\n耗时: {self._format_elapsed_seconds(elapsed_ms)} s\n错误: {error_msg}",
             QMessageBox.Yes,
         )
 
@@ -518,10 +569,10 @@ class MainWindow(QMainWindow):
 
         ct_path = self.ui.lineEdit_CT_path.text().strip()
         if not ct_path:
-            QMessageBox.information(self, "Info", "Please load a CT file first.", QMessageBox.Yes)
+            QMessageBox.information(self, "提示", "请先加载 CT 文件。", QMessageBox.Yes)
             return
         if not os.path.exists(ct_path):
-            QMessageBox.critical(self, "Error", f"CT file not found:\n{ct_path}", QMessageBox.Yes)
+            QMessageBox.critical(self, "错误", f"CT 文件不存在:\n{ct_path}", QMessageBox.Yes)
             return
 
         self.ui.lineEdit_Dice.setText("")
@@ -529,7 +580,7 @@ class MainWindow(QMainWindow):
         self.ui.progressBar.setValue(5)
 
         if not self.is_user_logged_in():
-            QMessageBox.warning(self, "Warning", "Please restart app and login first.", QMessageBox.Yes)
+            QMessageBox.warning(self, "警告", "请先重启应用并登录。", QMessageBox.Yes)
             return
 
         endpoint = "/me/jobs"
@@ -543,17 +594,17 @@ class MainWindow(QMainWindow):
         except urllib.error.HTTPError as exc:
             if exc.code in {401, 403}:
                 self.api_logout_user()
-                QMessageBox.warning(self, "Warning", "Login expired. Please restart app and login again.", QMessageBox.Yes)
+                QMessageBox.warning(self, "警告", "登录已过期，请重启应用后重新登录。", QMessageBox.Yes)
                 return
             QMessageBox.critical(
-                self, "Error", f"Submit failed (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+                self, "错误", f"提交失败 (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
             )
             return
         except urllib.error.URLError as exc:
-            QMessageBox.critical(self, "Error", f"Cannot connect API:\n{exc.reason}", QMessageBox.Yes)
+            QMessageBox.critical(self, "错误", f"无法连接 API:\n{exc.reason}", QMessageBox.Yes)
             return
         except Exception as exc:
-            QMessageBox.critical(self, "Error", f"Submit failed:\n{exc}", QMessageBox.Yes)
+            QMessageBox.critical(self, "错误", f"提交失败:\n{exc}", QMessageBox.Yes)
             return
 
         self.ui.progressBar.setValue(10)
@@ -563,6 +614,7 @@ class MainWindow(QMainWindow):
         if not self.ui.lineEdit_CT_path.text():
             QMessageBox.information(self, "提示", "请先选择CT", QMessageBox.Yes)
             return
+        start_time = time.time()
         args = config.args
         self.result_save_path = f'{args.log_save}/result'
         if not os.path.exists(self.result_save_path):
@@ -576,7 +628,10 @@ class MainWindow(QMainWindow):
         nii_img = nib.load(self.segmentation_path)
         self.segmentation_data = nii_img.get_fdata()
         self.display_slice()
-        QMessageBox.information(self, "提示", "分割成功", QMessageBox.Yes)
+        self._refresh_action_buttons()
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        local_job_id = f"local-{int(start_time)}"
+        self._show_segmentation_success("local", local_job_id, elapsed_ms)
 
     def predict(self, model, ct_dataset, args):
         dataloader = DataLoader(dataset=ct_dataset, batch_size=1, num_workers=0, shuffle=False)
@@ -688,40 +743,32 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "警告", "分割结果与标注数据形状不匹配，无法计算指标", QMessageBox.Yes)
 
+    @staticmethod
+    def _normalize_slice_to_uint8(slice_data):
+        min_value = float(slice_data.min())
+        max_value = float(slice_data.max())
+        if max_value <= min_value:
+            return np.zeros_like(slice_data, dtype=np.uint8)
+        normalized = (slice_data - min_value) / (max_value - min_value)
+        return (normalized * 255).astype(np.uint8)
+
+    def _render_slice_to_label(self, volume_data, target_label):
+        if volume_data is None:
+            return
+        slice_data = volume_data[:, :, self.current_slice_index]
+        slice_data = self._normalize_slice_to_uint8(slice_data)
+        height, width = slice_data.shape
+        bytes_per_line = width
+        qimage = QImage(slice_data.tobytes(), width, height, bytes_per_line, QImage.Format_Grayscale8)
+        pixmap = QPixmap.fromImage(qimage)
+        label_size = target_label.size()
+        scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        target_label.setPixmap(scaled_pixmap)
+
     def display_slice(self):
-        if self.ct_data is not None:
-            slice_data = self.ct_data[:, :, self.current_slice_index]
-            slice_data = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
-            slice_data = slice_data.astype(np.uint8)
-            height, width = slice_data.shape
-            bytes_per_line = width
-            qimage = QImage(slice_data.tobytes(), width, height, bytes_per_line, QImage.Format_Grayscale8)
-            pixmap = QPixmap.fromImage(qimage)
-            label_size = self.ui.label_ct.size()
-            scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.ui.label_ct.setPixmap(scaled_pixmap)
-        if self.label_data is not None:
-            slice_data = self.label_data[:, :, self.current_slice_index]
-            slice_data = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
-            slice_data = slice_data.astype(np.uint8)
-            height, width = slice_data.shape
-            bytes_per_line = width
-            qimage = QImage(slice_data.tobytes(), width, height, bytes_per_line, QImage.Format_Grayscale8)
-            pixmap = QPixmap.fromImage(qimage)
-            label_size = self.ui.label_label.size()
-            scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.ui.label_label.setPixmap(scaled_pixmap)
-        if self.segmentation_data is not None:
-            slice_data = self.segmentation_data[:, :, self.current_slice_index]
-            slice_data = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
-            slice_data = slice_data.astype(np.uint8)
-            height, width = slice_data.shape
-            bytes_per_line = width
-            qimage = QImage(slice_data.tobytes(), width, height, bytes_per_line, QImage.Format_Grayscale8)
-            pixmap = QPixmap.fromImage(qimage)
-            label_size = self.ui.label_segmentation.size()
-            scaled_pixmap = pixmap.scaled(label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.ui.label_segmentation.setPixmap(scaled_pixmap)
+        self._render_slice_to_label(self.ct_data, self.ui.label_ct)
+        self._render_slice_to_label(self.label_data, self.ui.label_label)
+        self._render_slice_to_label(self.segmentation_data, self.ui.label_segmentation)
         if self.ct_data is not None:
             total_slices = self.ct_data.shape[2]
             self.ui.label_slice_info.setText(f"切片: {self.current_slice_index + 1} / {total_slices}")
