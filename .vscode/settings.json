@@ -1,0 +1,19 @@
+{
+    "editor.fontSize": 14,
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "files.exclude": {
+        "**/__pycache__": true,
+        ".pytest_cache": true,
+        ".idea": true
+    },
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.analysis.extraPaths": [
+        "."
+    ],
+    "security.workspace.trust.enabled": false,
+    "security.workspace.trust.untrustedFiles": "open"
+}
