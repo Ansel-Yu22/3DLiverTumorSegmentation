@@ -6,7 +6,7 @@ from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
-from desktop.api_client import ApiClient
+from Desktop.api_client import ApiClient
 
 
 class LoginGateDialog(QtWidgets.QDialog):

@@ -17,9 +17,9 @@ from PyQt5.QtGui import QColor, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 from torch.utils.data import DataLoader
 
-from desktop.api_client import ApiClient
-from desktop.inference import MetricsCalculator, Test_DataSet
-from desktop.views import AccountDialog
+from Desktop.api_client import ApiClient
+from Desktop.inference import MetricsCalculator, Test_DataSet
+from Desktop.views import AccountDialog
 from path_utils import resolve_result_path
 
 

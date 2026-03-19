@@ -5,8 +5,8 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 
-from desktop.main_window import MainWindow
-from desktop.views import LoginGateDialog
+from Desktop.main_window import MainWindow
+from Desktop.views import LoginGateDialog
 
 
 if __name__ == "__main__":
