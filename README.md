@@ -186,10 +186,10 @@ Training/evaluation/preprocessing scripts are organized under `ml/`:
 - `ml/test.py`
 - `ml/preprocess.py`
 
-Backward-compatible root entrypoints are kept, so existing commands still work:
+Run them via module entrypoints:
 
 ```powershell
-python train.py
-python test.py
-python preprocess.py
+python -m ml.train
+python -m ml.test
+python -m ml.preprocess
 ```

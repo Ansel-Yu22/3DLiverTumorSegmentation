@@ -1,2 +1,0 @@
-# Training/offline scripts package.
-
