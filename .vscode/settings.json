@@ -14,6 +14,5 @@
     "python.analysis.extraPaths": [
         "."
     ],
-    "security.workspace.trust.enabled": false,
-    "security.workspace.trust.untrustedFiles": "open"
+    "json.schemaDownload.enable": true
 }
