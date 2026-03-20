@@ -126,7 +126,7 @@ powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode job_simple
 ### Build image
 
 ```powershell
-docker build -f Deploy/Dockerfile -t liver-seg-api:latest .
+docker build -f Dockerfile -t liver-seg-api:latest .
 ```
 
 ### Run with docker run
@@ -152,19 +152,19 @@ directory automatically.
 ### Run with docker compose (recommended)
 
 ```powershell
-docker compose -f Deploy/docker-compose.yml up -d
+docker compose up -d
 ```
 
 View logs:
 
 ```powershell
-docker compose -f Deploy/docker-compose.yml logs -f api
+docker compose logs -f api
 ```
 
 Stop and remove:
 
 ```powershell
-docker compose -f Deploy/docker-compose.yml down
+docker compose down
 ```
 
 ## 6) Tests and CI

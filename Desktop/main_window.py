@@ -439,7 +439,7 @@ class MainWindow(QMainWindow):
         return nib.load(path).get_fdata()
 
     def load_CT(self):
-        path, _ = QFileDialog.getOpenFileName(None, '选择CT影像', './CT/ct', 'CT File (*.nii *.nii.gz)')
+        path, _ = QFileDialog.getOpenFileName(None, '选择CT影像', './Doc/ct/ct', 'CT File (*.nii *.nii.gz)')
         if not path:
             return
         self.ui.lineEdit_Dice.setText("")
@@ -453,7 +453,7 @@ class MainWindow(QMainWindow):
         self._refresh_action_buttons()
 
     def load_label(self):
-        path, _ = QFileDialog.getOpenFileName(None, '选择标注影像', './CT/label', 'Label File (*.nii *.nii.gz)')
+        path, _ = QFileDialog.getOpenFileName(None, '选择标注影像', './Doc/ct/label', 'Label File (*.nii *.nii.gz)')
         if not path:
             return
         self.label_data = self._load_volume_data(path, self.ui.lineEdit_label_path, self.ui.lineEdit_label_size)

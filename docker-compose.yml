@@ -2,8 +2,8 @@ services:
   api:
     image: liver-seg-api:latest
     build:
-      context: ..
-      dockerfile: Deploy/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -12,6 +12,6 @@ services:
       UPLOAD_DIR: /app/Doc/upload
       DB_PATH: /app/Doc/job.db
     volumes:
-      - ../Model/checkpoint:/app/Model/checkpoint
-      - ../Doc:/app/Doc
+      - ./Model/checkpoint:/app/Model/checkpoint
+      - ./Doc:/app/Doc
     restart: unless-stopped

@@ -1,7 +1,7 @@
 param(
     [ValidateSet("predict", "job", "job_simple")]
     [string]$Mode = "job",
-    [string]$CtPath = "D:/PycharmProjects/3DLiverTumorSegmentation/CT/ct/volume-40.nii",
+    [string]$CtPath = "D:/PycharmProjects/3DLiverTumorSegmentation/Doc/ct/ct/volume-40.nii",
     [string]$BaseUrl = "http://127.0.0.1:8000",
     [int]$PollSeconds = 2,
     [int]$TimeoutSeconds = 900

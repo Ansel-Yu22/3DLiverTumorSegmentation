@@ -16,7 +16,6 @@ Docs/
 
 # Large model/data files (keep repository lightweight)
 Model/checkpoint/*.pth
-CT/
 
 # OS
 .DS_Store
