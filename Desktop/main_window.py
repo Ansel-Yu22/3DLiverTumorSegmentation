@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from Desktop.api_client import ApiClient
 from Desktop.inference import MetricsCalculator, Test_DataSet
 from Desktop.views import AccountDialog
-from APP.common.path_utils import resolve_result_path
+from Desktop.path_utils import resolve_result_path
 
 
 __version__ = '2.0.0'
