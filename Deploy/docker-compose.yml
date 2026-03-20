@@ -7,11 +7,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MODEL_PATH: /app/Model/model/best_model.pth
+      MODEL_PATH: /app/Model/checkpoint/best_model.pth
       RESULT_DIR: /app/Docs/result
       UPLOAD_DIR: /app/Docs/uploads
       DB_PATH: /app/Docs/jobs.db
     volumes:
-      - ../Model/model:/app/Model/model
+      - ../Model/checkpoint:/app/Model/checkpoint
       - ../Docs:/app/Docs
     restart: unless-stopped

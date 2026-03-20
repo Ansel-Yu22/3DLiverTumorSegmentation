@@ -5,7 +5,7 @@ import torch
 from fastapi.security import HTTPBasic
 
 
-MODEL_PATH = os.getenv("MODEL_PATH", "./Model/model/best_model.pth")
+MODEL_PATH = os.getenv("MODEL_PATH", "./Model/checkpoint/best_model.pth")
 RESULT_DIR = os.getenv("RESULT_DIR", "./Docs/result")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./Docs/uploads")
 DB_PATH = os.getenv("DB_PATH", "./Docs/jobs.db")

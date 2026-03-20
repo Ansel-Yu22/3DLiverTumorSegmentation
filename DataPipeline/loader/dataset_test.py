@@ -8,6 +8,8 @@ from torch.utils.data import Dataset
 
 
 class Test_DataSet(Dataset):
+    __test__ = False
+
     def __init__(self, ct_path, label_path, args):
         self.n_label = args.n_label
         self.cut_size = args.tc_size

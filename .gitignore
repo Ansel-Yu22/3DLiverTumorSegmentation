@@ -14,9 +14,8 @@ Result/
 Docs/
 
 # Large model/data files (keep repository lightweight)
-Model/model/*.pth
+Model/checkpoint/*.pth
 CT/
-Dataset/
 
 # OS
 .DS_Store

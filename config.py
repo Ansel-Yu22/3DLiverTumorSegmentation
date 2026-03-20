@@ -22,7 +22,7 @@ parser.add_argument('--tc_size', type=int, default=80, help='size of sliding win
 parser.add_argument('--tc_stride', type=int, default=20, help='stride of sliding window')
 
 # 训练测试
-parser.add_argument('--model_save', default='./Model/model', help='save path of trained model')
+parser.add_argument('--model_save', default='./Model/checkpoint', help='save path of trained model')
 parser.add_argument('--cpu', action='store_true', help='use cpu only')
 parser.add_argument('--batch_size', type=int, default=1, help='batch size of train dataset')
 parser.add_argument('--n_thread', type=int, default=16, help='number of threads for data loading')

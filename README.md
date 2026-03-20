@@ -132,15 +132,15 @@ docker build -f Deploy/Dockerfile -t liver-seg-api:latest .
 ### Run with docker run
 
 Model weights are not included in git. Mount your local model folder to
-`/app/Model/model` in the container.
+`/app/Model/checkpoint` in the container.
 
 ```powershell
 docker run --rm -p 8000:8000 `
-  -e MODEL_PATH=/app/Model/model/best_model.pth `
+  -e MODEL_PATH=/app/Model/checkpoint/best_model.pth `
   -e RESULT_DIR=/app/Docs/result `
   -e UPLOAD_DIR=/app/Docs/uploads `
   -e DB_PATH=/app/Docs/jobs.db `
-  -v D:/your_model_dir:/app/Model/model `
+  -v D:/your_model_dir:/app/Model/checkpoint `
   -v D:/your_result_dir:/app/Docs `
   liver-seg-api:latest
 ```
