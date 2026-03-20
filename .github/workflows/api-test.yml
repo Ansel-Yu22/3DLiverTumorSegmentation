@@ -5,7 +5,7 @@ on:
     paths:
       - "api.py"
       - "APP/**"
-      - "UI.py"
+      - "ui.py"
       - "Desktop/**"
       - "Test/**"
       - "requirements.txt"
@@ -14,7 +14,7 @@ on:
     paths:
       - "api.py"
       - "APP/**"
-      - "UI.py"
+      - "ui.py"
       - "Desktop/**"
       - "Test/**"
       - "requirements.txt"

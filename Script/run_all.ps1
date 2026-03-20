@@ -84,7 +84,7 @@ Write-Host "[3/3] Starting UI terminal..."
 $safeBaseUrl = Escape-SingleQuote $BaseUrl
 $uiCommand = @"
 `$env:SEG_API_BASE_URL = '$safeBaseUrl'
-& '$PythonExe' UI.py
+& '$PythonExe' ui.py
 "@
 Start-TerminalProcess -Title "LiverSeg UI" -Command $uiCommand
 
