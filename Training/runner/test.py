@@ -6,10 +6,10 @@ import torch
 import numpy as np
 import SimpleITK as sitk
 from tqdm import tqdm
-from Training.log import Test_Log
+from Training.core.log import Test_Log
 from collections import OrderedDict
 from torch.utils.data import DataLoader
-from Training.evaluate import MetricsCalculator
+from Training.core.evaluate import MetricsCalculator
 
 
 def predict(model, ct_dataset, args):

@@ -182,14 +182,17 @@ GitHub Actions workflow `API Tests` runs automatically on push/PR.
 
 Training/evaluation/preprocessing scripts are organized under `Training/`:
 
-- `Training/train.py`
-- `Training/test.py`
+- `Training/runner/train.py`
+- `Training/runner/test.py`
+- `Training/core/loss.py`
+- `Training/core/evaluate.py`
+- `Training/core/log.py`
 - `DataPipeline/processing/preprocess.py`
 
 Run them via module entrypoints:
 
 ```powershell
-python -m Training.train
-python -m Training.test
+python -m Training.runner.train
+python -m Training.runner.test
 python -m DataPipeline.processing.preprocess
 ```
