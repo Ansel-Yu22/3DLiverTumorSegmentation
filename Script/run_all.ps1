@@ -47,7 +47,7 @@ Write-Host "BaseUrl: $BaseUrl"
 
 Write-Host ""
 Write-Host "[1/3] Starting API terminal..."
-$apiCommand = "& '$PythonExe' api_min.py"
+$apiCommand = "& '$PythonExe' api.py"
 Start-TerminalProcess -Title "LiverSeg API" -Command $apiCommand
 
 if (-not $SkipHealthCheck) {

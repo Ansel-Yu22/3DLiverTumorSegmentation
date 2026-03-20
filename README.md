@@ -67,7 +67,7 @@ Recommended screenshots to show in resume/portfolio:
 ```powershell
 conda activate pytorch
 python -m pip install -r requirements.txt
-python api_min.py
+python api.py
 ```
 
 Default service address: `http://127.0.0.1:8000`
@@ -86,7 +86,7 @@ Use MySQL by setting `DB_URL` before startup:
 
 ```powershell
 $env:DB_URL = "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
-python api_min.py
+python api.py
 ```
 
 ## 4) Main endpoints
@@ -173,7 +173,7 @@ Run local API logic tests:
 
 ```powershell
 python -m pip install -r requirements.txt
-python -m pytest -q Test/test_api_min.py
+python -m pytest -q Test/test_api.py
 ```
 
 GitHub Actions workflow `API Tests` runs automatically on push/PR.

@@ -3,7 +3,7 @@ name: API Tests
 on:
   push:
     paths:
-      - "api_min.py"
+      - "api.py"
       - "APP/**"
       - "UI.py"
       - "Desktop/**"
@@ -12,7 +12,7 @@ on:
       - ".github/workflows/api-test.yml"
   pull_request:
     paths:
-      - "api_min.py"
+      - "api.py"
       - "APP/**"
       - "UI.py"
       - "Desktop/**"
@@ -44,4 +44,4 @@ jobs:
 
       - name: Run API tests
         run: |
-          PYTHONPATH=. python -m pytest -q Test/test_api_min.py
+          PYTHONPATH=. python -m pytest -q Test/test_api.py

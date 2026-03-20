@@ -17,7 +17,7 @@ RUN python -m pip install --upgrade pip && \
     pip install -r /app/requirements-docker.txt && \
     pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
 
-COPY api_min.py /app/
+COPY api.py /app/
 COPY APP /app/APP
 COPY Model /app/Model
 
@@ -25,4 +25,4 @@ RUN mkdir -p /app/Docs/result /app/Docs/uploads
 
 EXPOSE 8000
 
-CMD ["python", "-m", "uvicorn", "api_min:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
