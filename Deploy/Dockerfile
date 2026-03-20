@@ -21,7 +21,7 @@ COPY api.py /app/
 COPY APP /app/APP
 COPY Model /app/Model
 
-RUN mkdir -p /app/Docs/result /app/Docs/uploads
+RUN mkdir -p /app/Doc/result /app/Doc/upload
 
 EXPOSE 8000
 

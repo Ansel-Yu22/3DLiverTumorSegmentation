@@ -38,7 +38,7 @@ Stop services:
 
 ### UI screenshot
 
-![UI Main](Docs/img/ui-main.png)
+![UI Main](Doc/img/ui-main.png)
 
 ## 2) End-to-end flow (for demo/interview)
 
@@ -58,7 +58,7 @@ flowchart LR
 
 Recommended screenshots to show in resume/portfolio:
 
-- `Docs/img/ui-main.png` (main segmentation UI)
+- `Doc/img/ui-main.png` (main segmentation UI)
 - login dialog (before entering main UI)
 - account center (shows username/password + recent jobs)
 
@@ -72,15 +72,15 @@ python api.py
 
 Default service address: `http://127.0.0.1:8000`
 
-Default database: SQLite (`./Docs/jobs.db` via `DB_PATH`).
+Default database: SQLite (`./Doc/job.db` via `DB_PATH`).
 
-Docs directory layout:
+Doc directory layout:
 
-- `Docs/jobs.db`: user/job database
-- `Docs/result/`: all segmentation outputs (local + API)
-- `Docs/uploads/`: uploaded CT files used by API jobs
-- `Docs/logs/`: API stdout/stderr logs
-- `Docs/reports/`: offline experiment/analysis text reports
+- `Doc/job.db`: user/job database
+- `Doc/result/`: all segmentation outputs (local + API)
+- `Doc/upload/`: uploaded CT files used by API jobs
+- `Doc/log/`: API stdout/stderr logs
+- `Doc/report/`: offline experiment/analysis text reports
 
 Use MySQL by setting `DB_URL` before startup:
 
@@ -137,15 +137,15 @@ Model weights are not included in git. Mount your local model folder to
 ```powershell
 docker run --rm -p 8000:8000 `
   -e MODEL_PATH=/app/Model/checkpoint/best_model.pth `
-  -e RESULT_DIR=/app/Docs/result `
-  -e UPLOAD_DIR=/app/Docs/uploads `
-  -e DB_PATH=/app/Docs/jobs.db `
+  -e RESULT_DIR=/app/Doc/result `
+  -e UPLOAD_DIR=/app/Doc/upload `
+  -e DB_PATH=/app/Doc/job.db `
   -v D:/your_model_dir:/app/Model/checkpoint `
-  -v D:/your_result_dir:/app/Docs `
+  -v D:/your_result_dir:/app/Doc `
   liver-seg-api:latest
 ```
 
-Note: when API runs inside Docker, returned paths like `/app/Docs/...` are
+Note: when API runs inside Docker, returned paths like `/app/Doc/...` are
 container paths. `Script/run_api.ps1` will try to map `/app/...` to current local
 directory automatically.
 

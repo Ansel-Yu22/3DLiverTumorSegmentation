@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
-DB_PATH = "./Docs/jobs.db"
+DB_PATH = "./Doc/job.db"
 Base = declarative_base()
 
 engine = None

@@ -8,10 +8,10 @@ services:
       - "8000:8000"
     environment:
       MODEL_PATH: /app/Model/checkpoint/best_model.pth
-      RESULT_DIR: /app/Docs/result
-      UPLOAD_DIR: /app/Docs/uploads
-      DB_PATH: /app/Docs/jobs.db
+      RESULT_DIR: /app/Doc/result
+      UPLOAD_DIR: /app/Doc/upload
+      DB_PATH: /app/Doc/job.db
     volumes:
       - ../Model/checkpoint:/app/Model/checkpoint
-      - ../Docs:/app/Docs
+      - ../Doc:/app/Doc
     restart: unless-stopped

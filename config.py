@@ -30,7 +30,7 @@ parser.add_argument('--drop_rate', type=float, default=0.3, help='dropout ratio'
 parser.add_argument('--lr', type=float, default=0.00005, help='learning rate')
 parser.add_argument('--alpha', type=float, default=0.3, help='false positive weight')
 parser.add_argument('--beta', type=float, default=0.7, help='false negative weight')
-parser.add_argument('--log_save', default='./Docs', help='save path of log')
+parser.add_argument('--log_save', default='./Doc', help='save path of log')
 parser.add_argument('--ds_weight', type=float, default=0.4, help='deep supervision initial coefficient')
 parser.add_argument('--lr_dp', type=int, default=20, help='learning rate decay period')
 parser.add_argument('--lr_dc', type=float, default=0.8, help='learning rate decay coefficient')
