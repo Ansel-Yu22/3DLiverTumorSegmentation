@@ -5,23 +5,23 @@ for synchronous prediction and asynchronous jobs.
 
 ## 1) One-click start (API + UI)
 
-Use `Scripts/run_all.ps1` to start backend API and desktop UI in two terminals.
+Use `Script/run_all.ps1` to start backend API and desktop UI in two terminals.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1
+powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1
 ```
 
 Optional parameters:
 
 ```powershell
 # custom API address
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
+powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
 
 # custom python executable
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
+powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
 
 # skip waiting for /health
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1 -SkipHealthCheck
+powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -SkipHealthCheck
 ```
 
 Login flow after startup:
@@ -44,7 +44,7 @@ Stop services:
 
 ```mermaid
 flowchart LR
-  A["Start Scripts/run_all.ps1"] --> B["Login/Register dialog"]
+  A["Start Script/run_all.ps1"] --> B["Login/Register dialog"]
   B --> C["Main UI"]
   C --> D["Load CT file"]
   D --> E["Click API segmentation"]
@@ -112,13 +112,13 @@ Unified helper (recommended):
 
 ```powershell
 # sync predict
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_api.ps1 -Mode predict
+powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode predict
 
 # async job (verbose)
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_api.ps1 -Mode job
+powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode job
 
 # async job (concise)
-powershell -ExecutionPolicy Bypass -File .\Scripts\run_api.ps1 -Mode job_simple
+powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode job_simple
 ```
 
 ## 5) Docker deployment
@@ -146,7 +146,7 @@ docker run --rm -p 8000:8000 `
 ```
 
 Note: when API runs inside Docker, returned paths like `/app/Docs/...` are
-container paths. `Scripts/run_api.ps1` will try to map `/app/...` to current local
+container paths. `Script/run_api.ps1` will try to map `/app/...` to current local
 directory automatically.
 
 ### Run with docker compose (recommended)

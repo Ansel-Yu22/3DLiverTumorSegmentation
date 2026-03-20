@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if ((Split-Path -Leaf $ScriptDir) -eq "Scripts") {
+if ((Split-Path -Leaf $ScriptDir) -in @("Script", "Scripts")) {
     $ProjectRoot = Split-Path -Parent $ScriptDir
 }
 else {
