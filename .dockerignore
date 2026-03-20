@@ -12,6 +12,7 @@ __pycache__/
 CT/
 Dataset/
 Result/
+Docs/
 *.nii
 *.nii.gz
 

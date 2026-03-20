@@ -1,5 +1,4 @@
 ﻿import time
-from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel
@@ -20,7 +19,7 @@ def predict(file: UploadFile = File(...)):
 
     start = time.time()
     try:
-        output_name = f"result-{Path(original_filename).name}"
+        output_name = inference_service.build_result_filename(original_filename)
         result_path = inference_service.run_predict(upload_path, output_name=output_name)
         elapsed_ms = int((time.time() - start) * 1000)
         return {

@@ -38,7 +38,7 @@ Stop services:
 
 ### UI screenshot
 
-![UI Main](docs/images/ui-main.png)
+![UI Main](Docs/img/ui-main.png)
 
 ## 2) End-to-end flow (for demo/interview)
 
@@ -58,7 +58,7 @@ flowchart LR
 
 Recommended screenshots to show in resume/portfolio:
 
-- `docs/images/ui-main.png` (main segmentation UI)
+- `Docs/img/ui-main.png` (main segmentation UI)
 - login dialog (before entering main UI)
 - account center (shows username/password + recent jobs)
 
@@ -72,7 +72,15 @@ python api_min.py
 
 Default service address: `http://127.0.0.1:8000`
 
-Default database: SQLite (`./Result/jobs.db` via `DB_PATH`).
+Default database: SQLite (`./Docs/jobs.db` via `DB_PATH`).
+
+Docs directory layout:
+
+- `Docs/jobs.db`: user/job database
+- `Docs/result/`: all segmentation outputs (local + API)
+- `Docs/uploads/`: uploaded CT files used by API jobs
+- `Docs/logs/`: API stdout/stderr logs
+- `Docs/reports/`: offline experiment/analysis text reports
 
 Use MySQL by setting `DB_URL` before startup:
 
@@ -129,15 +137,15 @@ Model weights are not included in git. Mount your local model folder to
 ```powershell
 docker run --rm -p 8000:8000 `
   -e MODEL_PATH=/app/Model/model/best_model.pth `
-  -e RESULT_DIR=/app/Result/api_result `
-  -e UPLOAD_DIR=/app/Result/uploads `
-  -e DB_PATH=/app/Result/jobs.db `
+  -e RESULT_DIR=/app/Docs/result `
+  -e UPLOAD_DIR=/app/Docs/uploads `
+  -e DB_PATH=/app/Docs/jobs.db `
   -v D:/your_model_dir:/app/Model/model `
-  -v D:/your_result_dir:/app/Result `
+  -v D:/your_result_dir:/app/Docs `
   liver-seg-api:latest
 ```
 
-Note: when API runs inside Docker, returned paths like `/app/Result/...` are
+Note: when API runs inside Docker, returned paths like `/app/Docs/...` are
 container paths. `scripts/run_api.ps1` will try to map `/app/...` to current local
 directory automatically.
 
@@ -172,16 +180,16 @@ GitHub Actions workflow `API Tests` runs automatically on push/PR.
 
 ## 7) Offline ML scripts
 
-Training/evaluation/preprocessing scripts are organized under `ml/`:
+Training/evaluation/preprocessing scripts are organized under `Training/`:
 
-- `ml/train.py`
-- `ml/test.py`
-- `ml/preprocess.py`
+- `Training/train.py`
+- `Training/test.py`
+- `Training/preprocess.py`
 
 Run them via module entrypoints:
 
 ```powershell
-python -m ml.train
-python -m ml.test
-python -m ml.preprocess
+python -m Training.train
+python -m Training.test
+python -m Training.preprocess
 ```

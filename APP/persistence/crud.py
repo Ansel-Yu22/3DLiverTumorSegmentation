@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import Job, User
+from APP.persistence.models import Job, User
 
 
 def _utc_now() -> str:

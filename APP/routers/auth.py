@@ -1,8 +1,7 @@
 ﻿from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-import crud
-import db
+from APP.persistence import crud, db
 from APP.services import auth_service
 
 

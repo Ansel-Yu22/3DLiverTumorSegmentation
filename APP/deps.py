@@ -1,9 +1,8 @@
 ﻿from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBasicCredentials
 
-import crud
-import db
 from APP import state
+from APP.persistence import crud, db
 from APP.services import auth_service
 
 

@@ -6,9 +6,9 @@ from fastapi.security import HTTPBasic
 
 
 MODEL_PATH = os.getenv("MODEL_PATH", "./Model/model/best_model.pth")
-RESULT_DIR = os.getenv("RESULT_DIR", "./Result/api_result")
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./Result/uploads")
-DB_PATH = os.getenv("DB_PATH", "./Result/jobs.db")
+RESULT_DIR = os.getenv("RESULT_DIR", "./Docs/result")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./Docs/uploads")
+DB_PATH = os.getenv("DB_PATH", "./Docs/jobs.db")
 DB_URL = os.getenv("DB_URL", "").strip()
 
 N_LABEL = 3
@@ -24,4 +24,3 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = None
 executor = ThreadPoolExecutor(max_workers=1)
 security = HTTPBasic()
-

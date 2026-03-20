@@ -5,16 +5,16 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-import db
 from APP import state
 from APP.main import app
+from APP.persistence import db
 from APP.services import inference_service
 from path_utils import resolve_result_path
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    result_dir = tmp_path / "api_result"
+    result_dir = tmp_path / "result"
     upload_dir = tmp_path / "uploads"
     db_path = tmp_path / "jobs.db"
 
@@ -166,14 +166,14 @@ def test_job_not_found(client):
 
 def test_resolve_result_path_container_mapping(tmp_path):
     project_root = tmp_path
-    local_result = project_root / "Result" / "api_result" / "result-volume-40.nii"
+    local_result = project_root / "Docs" / "result" / "result-40.nii"
     local_result.parent.mkdir(parents=True, exist_ok=True)
     local_result.write_bytes(b"ok")
 
-    mapped = resolve_result_path("/app/Result/api_result/result-volume-40.nii", base_dir=str(project_root))
+    mapped = resolve_result_path("/app/Docs/result/result-40.nii", base_dir=str(project_root))
     assert mapped == str(local_result)
 
     # Keep original path when mapped host file does not exist.
-    unmapped = resolve_result_path("/app/Result/api_result/not-exists.nii", base_dir=str(project_root))
-    assert unmapped == "/app/Result/api_result/not-exists.nii"
+    unmapped = resolve_result_path("/app/Docs/result/not-exists.nii", base_dir=str(project_root))
+    assert unmapped == "/app/Docs/result/not-exists.nii"
 

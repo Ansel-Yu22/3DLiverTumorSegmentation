@@ -17,10 +17,11 @@ RUN python -m pip install --upgrade pip && \
     pip install -r /app/requirements-docker.txt && \
     pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
 
-COPY api_min.py crud.py db.py models.py /app/
+COPY api_min.py /app/
+COPY APP /app/APP
 COPY Model /app/Model
 
-RUN mkdir -p /app/Result/api_result /app/Result/uploads
+RUN mkdir -p /app/Docs/result /app/Docs/uploads
 
 EXPOSE 8000
 

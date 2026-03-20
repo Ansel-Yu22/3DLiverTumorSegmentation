@@ -12,10 +12,9 @@ from fastapi import UploadFile
 from scipy import ndimage
 from torch.utils.data import DataLoader, Dataset
 
-import crud
-import db
 from Model.Model import UNet
 from APP import state
+from APP.persistence import crud, db
 
 
 class InferenceDataset(Dataset):
@@ -106,6 +105,14 @@ def safe_remove(path: Optional[str]) -> None:
         pass
 
 
+def build_result_filename(source_name: str) -> str:
+    base_name = Path(str(source_name)).name
+    suffix = base_name.split("-")[-1] if "-" in base_name else base_name
+    if not suffix:
+        suffix = base_name
+    return f"result-{suffix}"
+
+
 def save_upload_file(file: UploadFile) -> tuple[str, str]:
     suffixes = "".join(Path(file.filename).suffixes)
     suffix = suffixes if suffixes else ".nii"
@@ -147,7 +154,7 @@ def run_predict(ct_path: str, output_name: Optional[str] = None) -> str:
     pred_img.SetOrigin(dataset.ct.GetOrigin())
     pred_img.SetSpacing(dataset.ct.GetSpacing())
 
-    out_name = output_name if output_name else f"result-{Path(ct_path).name}"
+    out_name = output_name if output_name else build_result_filename(ct_path)
     out_path = os.path.join(state.RESULT_DIR, out_name)
     sitk.WriteImage(pred_img, out_path)
     return out_path
@@ -159,7 +166,7 @@ def run_job(job_id: str, upload_path: str, original_filename: str) -> None:
 
     start = time.time()
     try:
-        output_name = f"result-{Path(original_filename).name}"
+        output_name = build_result_filename(original_filename)
         result_path = run_predict(upload_path, output_name=output_name)
         elapsed_ms = int((time.time() - start) * 1000)
         with db.get_session() as session:
