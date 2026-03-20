@@ -173,7 +173,7 @@ Run local API logic tests:
 
 ```powershell
 python -m pip install -r requirements.txt
-python -m pytest -q Test/test_api.py
+python -m pytest -q test_api.py
 ```
 
 GitHub Actions workflow `API Tests` runs automatically on push/PR.

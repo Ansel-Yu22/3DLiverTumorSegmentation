@@ -44,4 +44,4 @@ jobs:
 
       - name: Run API tests
         run: |
-          PYTHONPATH=. python -m pytest -q Test/test_api.py
+          PYTHONPATH=. python -m pytest -q test_api.py
