@@ -1,27 +1,27 @@
-# 3DLiverTumorSegmentation
+﻿# 3DLiverTumorSegmentation
 
 This project provides 3D liver/tumor segmentation and exposes a FastAPI service
 for synchronous prediction and asynchronous jobs.
 
 ## 1) One-click start (API + UI)
 
-Use `scripts/run_all.ps1` to start backend API and desktop UI in two terminals.
+Use `Scripts/run_all.ps1` to start backend API and desktop UI in two terminals.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run_all.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1
 ```
 
 Optional parameters:
 
 ```powershell
 # custom API address
-powershell -ExecutionPolicy Bypass -File .\scripts\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
 
 # custom python executable
-powershell -ExecutionPolicy Bypass -File .\scripts\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
 
 # skip waiting for /health
-powershell -ExecutionPolicy Bypass -File .\scripts\run_all.ps1 -SkipHealthCheck
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_all.ps1 -SkipHealthCheck
 ```
 
 Login flow after startup:
@@ -44,7 +44,7 @@ Stop services:
 
 ```mermaid
 flowchart LR
-  A["Start scripts/run_all.ps1"] --> B["Login/Register dialog"]
+  A["Start Scripts/run_all.ps1"] --> B["Login/Register dialog"]
   B --> C["Main UI"]
   C --> D["Load CT file"]
   D --> E["Click API segmentation"]
@@ -112,13 +112,13 @@ Unified helper (recommended):
 
 ```powershell
 # sync predict
-powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode predict
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_api.ps1 -Mode predict
 
 # async job (verbose)
-powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_api.ps1 -Mode job
 
 # async job (concise)
-powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job_simple
+powershell -ExecutionPolicy Bypass -File .\Scripts\run_api.ps1 -Mode job_simple
 ```
 
 ## 5) Docker deployment
@@ -126,7 +126,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_api.ps1 -Mode job_simple
 ### Build image
 
 ```powershell
-docker build -t liver-seg-api:latest .
+docker build -f Deploy/Dockerfile -t liver-seg-api:latest .
 ```
 
 ### Run with docker run
@@ -146,25 +146,25 @@ docker run --rm -p 8000:8000 `
 ```
 
 Note: when API runs inside Docker, returned paths like `/app/Docs/...` are
-container paths. `scripts/run_api.ps1` will try to map `/app/...` to current local
+container paths. `Scripts/run_api.ps1` will try to map `/app/...` to current local
 directory automatically.
 
 ### Run with docker compose (recommended)
 
 ```powershell
-docker compose up -d
+docker compose -f Deploy/docker-compose.yml up -d
 ```
 
 View logs:
 
 ```powershell
-docker compose logs -f api
+docker compose -f Deploy/docker-compose.yml logs -f api
 ```
 
 Stop and remove:
 
 ```powershell
-docker compose down
+docker compose -f Deploy/docker-compose.yml down
 ```
 
 ## 6) Tests and CI
@@ -173,7 +173,7 @@ Run local API logic tests:
 
 ```powershell
 python -m pip install -r requirements.txt
-python -m pytest -q tests/test_api_min.py
+python -m pytest -q Test/test_api_min.py
 ```
 
 GitHub Actions workflow `API Tests` runs automatically on push/PR.

@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 $scriptStart = Get-Date
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if ((Split-Path -Leaf $ScriptDir) -eq "scripts") {
+if ((Split-Path -Leaf $ScriptDir) -eq "Scripts") {
     $ProjectRoot = Split-Path -Parent $ScriptDir
 }
 else {

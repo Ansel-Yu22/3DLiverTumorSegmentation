@@ -9,7 +9,7 @@
     },
     "python.testing.pytestEnabled": true,
     "python.testing.pytestArgs": [
-        "tests"
+        "Test"
     ],
     "python.analysis.extraPaths": [
         "."

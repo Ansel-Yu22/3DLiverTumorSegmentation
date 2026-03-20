@@ -4,27 +4,19 @@ on:
   push:
     paths:
       - "api_min.py"
-      - "app/**"
-      - "crud.py"
-      - "db.py"
-      - "models.py"
-      - "path_utils.py"
+      - "APP/**"
       - "UI.py"
       - "Desktop/**"
-      - "tests/**"
+      - "Test/**"
       - "requirements.txt"
       - ".github/workflows/api-test.yml"
   pull_request:
     paths:
       - "api_min.py"
-      - "app/**"
-      - "crud.py"
-      - "db.py"
-      - "models.py"
-      - "path_utils.py"
+      - "APP/**"
       - "UI.py"
       - "Desktop/**"
-      - "tests/**"
+      - "Test/**"
       - "requirements.txt"
       - ".github/workflows/api-test.yml"
 
@@ -52,4 +44,4 @@ jobs:
 
       - name: Run API tests
         run: |
-          PYTHONPATH=. python -m pytest -q tests/test_api_min.py
+          PYTHONPATH=. python -m pytest -q Test/test_api_min.py

@@ -9,7 +9,7 @@ from APP import state
 from APP.main import app
 from APP.persistence import db
 from APP.services import inference_service
-from path_utils import resolve_result_path
+from APP.common.path_utils import resolve_result_path
 
 
 @pytest.fixture
