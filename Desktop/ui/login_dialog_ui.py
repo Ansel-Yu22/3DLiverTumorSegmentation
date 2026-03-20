@@ -2,8 +2,8 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
-from Desktop.ui import ui_styles as S
-from Desktop.ui import ui_texts as T
+from Desktop.ui import ui_style as S
+from Desktop.ui import ui_text as T
 
 
 class LoginDialogUiMixin:
@@ -79,4 +79,3 @@ class LoginDialogUiMixin:
         row.addStretch(1)
         root.addLayout(row)
         root.addSpacing(6)
-

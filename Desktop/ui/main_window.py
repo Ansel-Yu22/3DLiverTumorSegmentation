@@ -12,10 +12,10 @@ from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
-from Desktop.controller.api_task_controller import ApiTaskControllerMixin
-from Desktop.controller.local_segmentation_controller import LocalSegmentationControllerMixin
+from Desktop.core.api_task_controller import ApiTaskControllerMixin
+from Desktop.core.local_segmentation_controller import LocalSegmentationControllerMixin
 from Desktop.infra.api_client import ApiClient
-from Desktop.ui import ui_texts as T
+from Desktop.ui import ui_text as T
 from Desktop.ui.account_dialog import AccountDialog
 from Desktop.ui.main_window_layout import Ui_MainWindow
 

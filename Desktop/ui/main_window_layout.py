@@ -2,8 +2,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
 
-from Desktop.ui import ui_styles as S
-from Desktop.ui import ui_texts as T
+from Desktop.ui import ui_style as S
+from Desktop.ui import ui_text as T
 
 
 class Ui_MainWindow(object):
@@ -227,4 +227,3 @@ class Ui_MainWindow(object):
         self.statusbar.setMinimumHeight(24)
         self.statusbar.setStyleSheet(S.STATUS_BAR_STYLE)
         MainWindow.setStatusBar(self.statusbar)
-

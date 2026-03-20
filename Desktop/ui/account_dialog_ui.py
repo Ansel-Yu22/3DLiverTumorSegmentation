@@ -1,8 +1,8 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
-from Desktop.ui import ui_styles as S
-from Desktop.ui import ui_texts as T
+from Desktop.ui import ui_style as S
+from Desktop.ui import ui_text as T
 
 
 class AccountDialogUiMixin:
@@ -120,4 +120,3 @@ class AccountDialogUiMixin:
         header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
         self.jobs_table.setStyleSheet(S.JOBS_TABLE_STYLE)
         root.addWidget(self.jobs_table, 1)
-

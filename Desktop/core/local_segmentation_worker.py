@@ -7,7 +7,7 @@ import torch
 from PyQt5 import QtCore
 from torch.utils.data import DataLoader
 
-from Desktop.service.inference import Test_DataSet
+from Desktop.core.inference import Test_DataSet
 
 
 class LocalSegmentationWorker(QtCore.QObject):
