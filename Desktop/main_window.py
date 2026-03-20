@@ -10,7 +10,7 @@ import numpy as np
 import SimpleITK as sitk
 import shutil
 import torch
-from Model.Model import UNet
+from Model.model import UNet
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QColor, QImage, QPalette, QPixmap

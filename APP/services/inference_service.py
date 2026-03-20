@@ -12,7 +12,7 @@ from fastapi import UploadFile
 from scipy import ndimage
 from torch.utils.data import DataLoader, Dataset
 
-from Model.Model import UNet
+from Model.model import UNet
 from APP import state
 from APP.persistence import crud, db
 

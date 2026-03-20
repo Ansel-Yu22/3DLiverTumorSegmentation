@@ -1,5 +1,5 @@
 import config
-from Model.Model import UNet
+from Model.model import UNet
 from DataPipeline.loader.dataset_test import Test_Datasets
 import os
 import torch

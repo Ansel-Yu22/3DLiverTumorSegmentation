@@ -1,5 +1,5 @@
 import config
-from Model.Model import UNet
+from Model.model import UNet
 from Training.log import Train_Log
 from Training.loss import TverskyLoss
 from DataPipeline.loader.dataset_train import Train_Dataset, Val_Dataset
