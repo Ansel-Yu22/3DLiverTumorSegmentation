@@ -3,71 +3,94 @@ import time
 
 import config
 import nibabel as nib
-import numpy as np
-import SimpleITK as sitk
 import torch
-from PyQt5.QtWidgets import QApplication, QMessageBox
-from torch.utils.data import DataLoader
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QMessageBox
 
-from Desktop.inference import MetricsCalculator, Test_DataSet
+from Desktop.inference import MetricsCalculator
+from Desktop.local_segmentation_worker import LocalSegmentationWorker
 
 
 class LocalSegmentationControllerMixin:
     def segmentation(self):
-        if not self.ui.lineEdit_CT_path.text():
+        if self.local_seg_in_progress:
+            QMessageBox.information(self, "提示", "本地分割任务正在运行，请稍候。", QMessageBox.Yes)
+            return
+        if self.api_poll_context is not None:
+            QMessageBox.information(self, "提示", "已有 API 任务在运行，请稍候。", QMessageBox.Yes)
+            return
+
+        ct_path = self.ui.lineEdit_CT_path.text().strip()
+        if not ct_path:
             QMessageBox.information(self, "提示", "请先选择CT", QMessageBox.Yes)
             return
-        start_time = time.time()
+        if not os.path.exists(ct_path):
+            QMessageBox.critical(self, "错误", f"CT 文件不存在:\n{ct_path}", QMessageBox.Yes)
+            return
+
+        self.ui.lineEdit_Dice.setText("")
+        self.ui.lineEdit_iou.setText("")
+        self.ui.progressBar.setValue(0)
+
+        self._start_local_segmentation_worker(ct_path)
+
+    def _start_local_segmentation_worker(self, ct_path):
         args = config.args
-        self.result_save_path = f"{args.log_save}/result"
-        if not os.path.exists(self.result_save_path):
-            os.mkdir(self.result_save_path)
-        ct_path = self.ui.lineEdit_CT_path.text()
-        datasets = self.Test_Datasets(ct_path, None, args)
-        for ct_dataset, self.ct_name in datasets:
-            _, pred_ct = self.predict(self.model, ct_dataset, args)
-            self.segmentation_path = os.path.join(self.result_save_path, f"result-{self.ct_name}")
-            sitk.WriteImage(pred_ct, self.segmentation_path)
-        nii_img = nib.load(self.segmentation_path)
-        self.segmentation_data = nii_img.get_fdata()
+        self._local_seg_thread = QtCore.QThread(self)
+        self._local_seg_worker = LocalSegmentationWorker(
+            model=self.model,
+            device=self.device,
+            ct_path=ct_path,
+            args=args,
+        )
+        self._local_seg_worker.moveToThread(self._local_seg_thread)
+
+        self._local_seg_thread.started.connect(self._local_seg_worker.run)
+        self._local_seg_worker.progress_changed.connect(self.ui.progressBar.setValue)
+        self._local_seg_worker.succeeded.connect(self._on_local_segmentation_succeeded)
+        self._local_seg_worker.failed.connect(self._on_local_segmentation_failed)
+        self._local_seg_worker.finished.connect(self._local_seg_thread.quit)
+        self._local_seg_worker.finished.connect(self._local_seg_worker.deleteLater)
+        self._local_seg_thread.finished.connect(self._local_seg_thread.deleteLater)
+        self._local_seg_thread.finished.connect(self._on_local_segmentation_finished)
+
+        self.local_seg_in_progress = True
+        self._refresh_action_buttons()
+        self._local_seg_thread.start()
+
+    def _on_local_segmentation_succeeded(self, segmentation_path, ct_name, elapsed_ms):
+        self.segmentation_path = segmentation_path
+        self.ct_name = ct_name
+        self.segmentation_data = nib.load(self.segmentation_path).get_fdata()
+        self.ui.progressBar.setValue(100)
         self.display_slice()
         self._refresh_action_buttons()
-        elapsed_ms = int((time.time() - start_time) * 1000)
-        local_job_id = f"local-{int(start_time)}"
+
+        local_job_id = f"local-{int(time.time())}"
         self._show_segmentation_success("local", local_job_id, elapsed_ms)
 
-    def predict(self, model, ct_dataset, args):
-        dataloader = DataLoader(dataset=ct_dataset, batch_size=1, num_workers=0, shuffle=False)
-        model.eval()
-        total_steps = len(dataloader)
-        with torch.no_grad():
-            for i, data in enumerate(dataloader):
-                data = data.to(self.device)
-                output = model(data)
-                output = torch.nn.functional.interpolate(
-                    output,
-                    scale_factor=(1 / args.z_down_scale, 1 / args.xy_down_scale, 1 / args.xy_down_scale),
-                    mode="trilinear",
-                    align_corners=False,
-                )
-                ct_dataset.update_result(output.detach().cpu())
-                self.ui.progressBar.setValue(int((i + 1) / total_steps * 100))
-                QApplication.processEvents()
-        pred = ct_dataset.recompone_result()
-        pred = torch.argmax(pred, dim=1)
-        pred_ct = sitk.GetImageFromArray(np.squeeze(pred.numpy(), axis=0).astype(np.uint8))
-        return None, pred_ct
+    def _on_local_segmentation_failed(self, error_message):
+        self.ui.progressBar.setValue(0)
+        QMessageBox.critical(self, "错误", f"本地分割失败:\n{error_message}", QMessageBox.Yes)
+
+    def _on_local_segmentation_finished(self):
+        self.local_seg_in_progress = False
+        self._local_seg_worker = None
+        self._local_seg_thread = None
+        self._refresh_action_buttons()
 
     def calculate_metrics(self):
         if self.segmentation_data is None or self.label_data is None:
             return None, None
         if self.segmentation_data.shape != self.label_data.shape:
             return None, None
+
         args = config.args
         pred = torch.from_numpy(self.segmentation_data).unsqueeze(0).long()
         target = torch.from_numpy(self.label_data).unsqueeze(0).long()
         pred_one_hot = self.to_one_hot_3d(pred, args.n_label)
         target_one_hot = self.to_one_hot_3d(target, args.n_label)
+
         metrics_calc = MetricsCalculator(args.n_label)
         metrics_calc.update(pred_one_hot, target_one_hot)
         dice_avg, iou_avg = metrics_calc.get_averages()
@@ -75,14 +98,8 @@ class LocalSegmentationControllerMixin:
             return dice_avg[2], iou_avg[2]
         return dice_avg[0], iou_avg[0]
 
-    def to_one_hot_3d(self, tensor, n_label):
+    @staticmethod
+    def to_one_hot_3d(tensor, n_label):
         n, s, h, w = tensor.size()
-        one_hot = torch.zeros(n, n_label, s, h, w)
-        one_hot = one_hot.scatter_(1, tensor.view(n, 1, s, h, w), 1)
-        return one_hot
-
-    def Test_Datasets(self, ct_path, label_path, args):
-        ct_list = [ct_path]
-        label_list = [label_path] if label_path else [None]
-        for ct_file, label_file in zip(ct_list, label_list):
-            yield Test_DataSet(ct_file, label_file, args=args), ct_file.split("-")[-1]
+        one_hot = torch.zeros(n, n_label, s, h, w, device=tensor.device, dtype=torch.float32)
+        return one_hot.scatter_(1, tensor.view(n, 1, s, h, w), 1)

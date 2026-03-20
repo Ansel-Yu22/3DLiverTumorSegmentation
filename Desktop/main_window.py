@@ -47,6 +47,9 @@ class MainWindow(QMainWindow, ApiTaskControllerMixin, LocalSegmentationControlle
         self.api_poll_timer = QtCore.QTimer(self)
         self.api_poll_timer.timeout.connect(self._poll_api_job_once)
         self.api_poll_context = None
+        self.local_seg_in_progress = False
+        self._local_seg_thread = None
+        self._local_seg_worker = None
 
         self.auth_username = auth_username
         self.auth_password = auth_password
@@ -95,8 +98,10 @@ class MainWindow(QMainWindow, ApiTaskControllerMixin, LocalSegmentationControlle
         has_ct = bool(self.ui.lineEdit_CT_path.text().strip())
         has_result = self.segmentation_data is not None and bool(self.segmentation_path)
         is_polling = self.api_poll_context is not None and self.api_poll_timer.isActive()
-        self.ui.pushButton_segmentation.setEnabled(has_ct)
-        self.ui.pushButton_segmentation_api.setEnabled(has_ct and not is_polling)
+        is_local_running = bool(getattr(self, "local_seg_in_progress", False))
+        can_start_seg = has_ct and not is_polling and not is_local_running
+        self.ui.pushButton_segmentation.setEnabled(can_start_seg)
+        self.ui.pushButton_segmentation_api.setEnabled(can_start_seg)
         self.ui.pushButton_save.setEnabled(has_result)
         self.ui.pushButton_info.setEnabled(has_result)
 

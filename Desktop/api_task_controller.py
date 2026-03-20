@@ -64,7 +64,10 @@ class ApiTaskControllerMixin:
         except urllib.error.HTTPError as exc:
             self._stop_api_polling()
             QMessageBox.critical(
-                self, "错误", f"查询失败 (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+                self,
+                "错误",
+                f"查询失败 (HTTP {exc.code})\n{self._read_http_error(exc)}",
+                QMessageBox.Yes,
             )
             return
         except urllib.error.URLError as exc:
@@ -93,8 +96,7 @@ class ApiTaskControllerMixin:
 
             self.segmentation_path = result_path
             self.ct_name = os.path.basename(ct_path).split("-")[-1]
-            nii_img = nib.load(self.segmentation_path)
-            self.segmentation_data = nii_img.get_fdata()
+            self.segmentation_data = nib.load(self.segmentation_path).get_fdata()
             self.display_slice()
             self._refresh_action_buttons()
             self.ui.progressBar.setValue(100)
@@ -115,6 +117,9 @@ class ApiTaskControllerMixin:
     def segmentation_api(self):
         if self.api_poll_context is not None:
             QMessageBox.information(self, "提示", "已有 API 任务在运行，请稍候。", QMessageBox.Yes)
+            return
+        if getattr(self, "local_seg_in_progress", False):
+            QMessageBox.information(self, "提示", "本地分割任务正在运行，请稍候。", QMessageBox.Yes)
             return
 
         ct_path = self.ui.lineEdit_CT_path.text().strip()
@@ -147,7 +152,10 @@ class ApiTaskControllerMixin:
                 QMessageBox.warning(self, "警告", "登录已过期，请重启应用后重新登录。", QMessageBox.Yes)
                 return
             QMessageBox.critical(
-                self, "错误", f"提交失败 (HTTP {exc.code})\n{self._read_http_error(exc)}", QMessageBox.Yes
+                self,
+                "错误",
+                f"提交失败 (HTTP {exc.code})\n{self._read_http_error(exc)}",
+                QMessageBox.Yes,
             )
             return
         except urllib.error.URLError as exc:
