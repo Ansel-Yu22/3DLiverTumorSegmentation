@@ -2,8 +2,8 @@
 
 from fastapi import FastAPI
 
-from APP.routers import auth, health, jobs, predict
-from APP.services import inference_service
+from APP.router import auth, health, job, predict
+from APP.service import inference_service
 
 
 @asynccontextmanager
@@ -16,6 +16,6 @@ app = FastAPI(title="3D Liver Tumor Segmentation API (Minimal)", lifespan=lifesp
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(predict.router)
-app.include_router(jobs.router)
+app.include_router(job.router)
 
 

@@ -3,7 +3,7 @@ from fastapi.security import HTTPBasicCredentials
 
 from APP import state
 from APP.persistence import crud, db
-from APP.services import auth_service
+from APP.service import auth_service
 
 
 def require_user(credentials: HTTPBasicCredentials = Depends(state.security)) -> dict:

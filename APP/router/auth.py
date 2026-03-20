@@ -2,7 +2,7 @@
 from pydantic import BaseModel
 
 from APP.persistence import crud, db
-from APP.services import auth_service
+from APP.service import auth_service
 
 
 router = APIRouter()

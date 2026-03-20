@@ -3,7 +3,7 @@
 from fastapi import APIRouter, File, UploadFile
 from pydantic import BaseModel
 
-from APP.services import inference_service
+from APP.service import inference_service
 
 
 router = APIRouter()

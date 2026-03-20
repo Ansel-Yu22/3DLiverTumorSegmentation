@@ -49,7 +49,7 @@ def init_db(db_path: Optional[str] = None, db_url: Optional[str] = None) -> None
     if db_path is not None or db_url is not None or engine is None or SessionLocal is None:
         configure_database(db_path=db_path or DB_PATH, db_url=db_url)
 
-    from APP.persistence import models  # noqa: F401
+    from APP.persistence import model  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
     _ensure_legacy_columns()

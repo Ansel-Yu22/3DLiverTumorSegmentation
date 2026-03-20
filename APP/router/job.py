@@ -4,9 +4,9 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from APP import state
-from APP.deps import require_user
+from APP.router.dep import require_user
 from APP.persistence import crud, db
-from APP.services import inference_service
+from APP.service import inference_service
 
 
 router = APIRouter()
