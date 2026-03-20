@@ -2,7 +2,7 @@ import config
 from Model.Model import UNet
 from Training.log import Train_Log
 from Training.loss import TverskyLoss
-from Dataset.dataset_train import Train_Dataset, Val_Dataset
+from DataPipeline.loader.dataset_train import Train_Dataset, Val_Dataset
 import os
 import time
 import torch
