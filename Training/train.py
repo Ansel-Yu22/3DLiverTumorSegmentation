@@ -1,12 +1,12 @@
 import config
 from Model.Model import UNet
-from Util.log import Train_Log
-from Util.loss import TverskyLoss
+from Training.log import Train_Log
+from Training.loss import TverskyLoss
 from Dataset.dataset_train import Train_Dataset, Val_Dataset
 import os
 import time
 import torch
-import Util.evaluate as el
+import Training.evaluate as el
 from torch import nn
 from tqdm import tqdm
 from collections import OrderedDict

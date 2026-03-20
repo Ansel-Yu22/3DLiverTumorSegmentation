@@ -184,12 +184,12 @@ Training/evaluation/preprocessing scripts are organized under `Training/`:
 
 - `Training/train.py`
 - `Training/test.py`
-- `Training/preprocess.py`
+- `Dataset/preprocess.py`
 
 Run them via module entrypoints:
 
 ```powershell
 python -m Training.train
 python -m Training.test
-python -m Training.preprocess
+python -m Dataset.preprocess
 ```
