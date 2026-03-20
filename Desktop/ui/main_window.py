@@ -10,13 +10,14 @@ from Model.model import UNet
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QMainWindow, QMessageBox
 
-from Desktop.api_client import ApiClient
-from Desktop.api_task_controller import ApiTaskControllerMixin
-from Desktop.local_segmentation_controller import LocalSegmentationControllerMixin
-from Desktop.ui_layout import Ui_MainWindow
-from Desktop.views import AccountDialog
+from Desktop.controller.api_task_controller import ApiTaskControllerMixin
+from Desktop.controller.local_segmentation_controller import LocalSegmentationControllerMixin
+from Desktop.infra.api_client import ApiClient
+from Desktop.ui import ui_texts as T
+from Desktop.ui.account_dialog import AccountDialog
+from Desktop.ui.main_window_layout import Ui_MainWindow
 
 
 __version__ = "2.0.0"
@@ -73,16 +74,16 @@ class MainWindow(QMainWindow, ApiTaskControllerMixin, LocalSegmentationControlle
 
     def show_about(self):
         html = (
-            "<h3>肝脏肿瘤CT分割系统</h3>"
+            f"<h3>{T.APP_TITLE}</h3>"
             f"<p><b>版本：</b>{__version__}</p>"
-            "<p><b>作者：</b>于波</p>"
-            "<p><b>机构：</b>桂林电子科技大学</p>"
-            "<p><b>编译日期：</b>2026-03-20</p>"
+            f"<p><b>作者：</b>{T.ABOUT_AUTHOR}</p>"
+            f"<p><b>机构：</b>{T.ABOUT_ORG}</p>"
+            f"<p><b>编译日期：</b>{T.BUILD_DATE}</p>"
             "<hr>"
-            "<p>本系统基于LDR-UNet模型构建，实现肝脏及肿瘤CT影像的自动分割、"
-            "分割结果保存与评估等功能。</p>"
+            "<p>本系统基于 LDR-UNet 模型构建，实现肝脏及肿瘤 CT 影像的自动分割，"
+            "支持结果保存与指标评估。</p>"
         )
-        QMessageBox.about(self, "关于", html)
+        QMessageBox.about(self, T.ABOUT_TITLE, html)
 
     def init_slot(self):
         self.ui.pushButton_CT.clicked.connect(self.load_CT)
@@ -235,6 +236,7 @@ class MainWindow(QMainWindow, ApiTaskControllerMixin, LocalSegmentationControlle
         if not os.path.exists(src_file):
             QMessageBox.critical(self, "错误", "源文件不存在，无法保存", QMessageBox.Yes)
             return
+
         default_name = f"result-{self.ct_name}"
         file_filter = "NIFTI 文件 (*.nii);;压缩 NIFTI (*.nii.gz)"
         while True:
@@ -257,6 +259,7 @@ class MainWindow(QMainWindow, ApiTaskControllerMixin, LocalSegmentationControlle
                     break
             folder_path = base + suffix
             break
+
         try:
             if folder_path.lower().endswith(".nii.gz"):
                 import gzip

@@ -7,8 +7,8 @@ import torch
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMessageBox
 
-from Desktop.inference import MetricsCalculator
-from Desktop.local_segmentation_worker import LocalSegmentationWorker
+from Desktop.service.inference import MetricsCalculator
+from Desktop.worker.local_segmentation_worker import LocalSegmentationWorker
 
 
 class LocalSegmentationControllerMixin:

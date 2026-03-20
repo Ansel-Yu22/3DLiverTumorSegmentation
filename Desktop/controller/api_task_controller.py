@@ -5,8 +5,8 @@ import urllib.error
 import nibabel as nib
 from PyQt5.QtWidgets import QMessageBox
 
-from Desktop.api_client import ApiClient
-from Desktop.path_utils import resolve_result_path
+from Desktop.infra.api_client import ApiClient
+from Desktop.infra.path_utils import resolve_result_path
 
 
 class ApiTaskControllerMixin:
