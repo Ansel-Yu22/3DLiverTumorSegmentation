@@ -200,7 +200,7 @@ def load_state_dict(model_path: str):
 def startup_init() -> None:
     os.makedirs(state.RESULT_DIR, exist_ok=True)
     os.makedirs(state.UPLOAD_DIR, exist_ok=True)
-    db.init_db(db_path=state.DB_PATH if not state.DB_URL else None, db_url=state.DB_URL or None)
+    db.init_db(db_url=state.DB_URL or None)
     net = UNet(in_channel=1, out_channel=state.N_LABEL, drop_rate=state.DROP_RATE, training=False)
     net = net.to(state.device)
     loaded_state_dict = load_state_dict(state.MODEL_PATH)

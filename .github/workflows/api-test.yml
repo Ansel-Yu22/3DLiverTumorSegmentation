@@ -23,6 +23,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 412203
+          MYSQL_DATABASE: liver_seg_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p412203 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     strategy:
       fail-fast: false
       matrix:
@@ -42,6 +55,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Wait for MySQL
+        run: |
+          python - <<'PY'
+          import time
+          import pymysql
+
+          deadline = time.time() + 120
+          while True:
+              try:
+                  conn = pymysql.connect(
+                      host="127.0.0.1",
+                      port=3306,
+                      user="root",
+                      password="412203",
+                      database="liver_seg_test",
+                      charset="utf8mb4",
+                      autocommit=True,
+                  )
+                  conn.close()
+                  break
+              except Exception:
+                  if time.time() > deadline:
+                      raise
+                  time.sleep(2)
+          PY
+
       - name: Run API tests
+        env:
+          TEST_DB_URL: mysql+pymysql://root:412203@127.0.0.1:3306/liver_seg_test?charset=utf8mb4
         run: |
           PYTHONPATH=. python -m pytest -q test_api.py

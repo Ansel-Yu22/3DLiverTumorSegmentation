@@ -10,7 +10,7 @@ services:
       MODEL_PATH: /app/Model/checkpoint/best_model.pth
       RESULT_DIR: /app/Doc/result
       UPLOAD_DIR: /app/Doc/upload
-      DB_PATH: /app/Doc/job.db
+      DB_URL: mysql+pymysql://root:your_password@host.docker.internal:3306/liver_seg?charset=utf8mb4
     volumes:
       - ./Model/checkpoint:/app/Model/checkpoint
       - ./Doc:/app/Doc

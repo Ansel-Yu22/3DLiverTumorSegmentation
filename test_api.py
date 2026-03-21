@@ -1,4 +1,5 @@
-﻿import io
+import io
+import os
 import time
 from pathlib import Path
 
@@ -16,12 +17,13 @@ from Desktop.infra.path_utils import resolve_result_path
 def client(tmp_path, monkeypatch):
     result_dir = tmp_path / "result"
     upload_dir = tmp_path / "upload"
-    db_path = tmp_path / "job.db"
+    test_db_url = os.getenv("TEST_DB_URL", "").strip()
+    if not test_db_url:
+        pytest.skip("TEST_DB_URL is required for MySQL-only tests.")
 
     monkeypatch.setattr(state, "RESULT_DIR", str(result_dir))
     monkeypatch.setattr(state, "UPLOAD_DIR", str(upload_dir))
-    monkeypatch.setattr(state, "DB_PATH", str(db_path))
-    monkeypatch.setattr(state, "DB_URL", "")
+    monkeypatch.setattr(state, "DB_URL", test_db_url)
 
     def fake_run_predict(ct_path: str, output_name=None) -> str:
         out_name = output_name if output_name else f"result-{Path(ct_path).name}"
@@ -35,7 +37,11 @@ def client(tmp_path, monkeypatch):
     def fake_startup():
         result_dir.mkdir(parents=True, exist_ok=True)
         upload_dir.mkdir(parents=True, exist_ok=True)
-        db.init_db(state.DB_PATH)
+        db.engine = None
+        db.SessionLocal = None
+        db.init_db(db_url=state.DB_URL)
+        db.Base.metadata.drop_all(bind=db.engine)
+        db.Base.metadata.create_all(bind=db.engine)
         state.model = object()
 
     monkeypatch.setattr(inference_service, "startup_init", fake_startup)
@@ -176,4 +182,3 @@ def test_resolve_result_path_container_mapping(tmp_path):
     # Keep original path when mapped host file does not exist.
     unmapped = resolve_result_path("/app/Doc/result/not-exists.nii", base_dir=str(project_root))
     assert unmapped == "/app/Doc/result/not-exists.nii"
-

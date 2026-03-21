@@ -8,7 +8,6 @@ from fastapi.security import HTTPBasic
 MODEL_PATH = os.getenv("MODEL_PATH", "./Model/checkpoint/best_model.pth")
 RESULT_DIR = os.getenv("RESULT_DIR", "./Doc/result")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./Doc/upload")
-DB_PATH = os.getenv("DB_PATH", "./Doc/job.db")
 DB_URL = os.getenv("DB_URL", "").strip()
 
 N_LABEL = 3

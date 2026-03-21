@@ -1,53 +1,45 @@
 import os
-from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
-DB_PATH = "./Doc/job.db"
 Base = declarative_base()
 
 engine = None
 SessionLocal = None
 
 
-def _sqlite_url(db_path: str) -> str:
-    return f"sqlite:///{Path(db_path).as_posix()}"
-
-
 def _normalize_db_url(db_url: str) -> str:
-    db_url = db_url.strip()
-    if db_url.startswith("mysql://"):
+    value = (db_url or "").strip()
+    if value.startswith("mysql://"):
         # SQLAlchemy 2.x requires explicit DBAPI driver.
-        return db_url.replace("mysql://", "mysql+pymysql://", 1)
-    return db_url
+        return value.replace("mysql://", "mysql+pymysql://", 1)
+    return value
 
 
-def configure_database(db_path: Optional[str] = None, db_url: Optional[str] = None) -> None:
-    global DB_PATH, engine, SessionLocal
-    connect_args = {}
+def _resolve_mysql_url(db_url: Optional[str] = None) -> str:
+    value = _normalize_db_url(db_url if db_url is not None else os.getenv("DB_URL", ""))
+    if not value:
+        raise RuntimeError("DB_URL is required. This project only supports MySQL.")
+    if not value.startswith("mysql+pymysql://"):
+        raise RuntimeError(
+            "Invalid DB_URL. Only MySQL is supported. Use mysql+pymysql://... (mysql://... is also accepted)."
+        )
+    return value
 
-    if db_url:
-        database_url = _normalize_db_url(db_url)
-    else:
-        DB_PATH = db_path or DB_PATH
-        db_parent = Path(DB_PATH).parent
-        if str(db_parent) not in {"", "."}:
-            os.makedirs(db_parent, exist_ok=True)
-        database_url = _sqlite_url(DB_PATH)
 
-    if database_url.startswith("sqlite"):
-        connect_args["check_same_thread"] = False
-
-    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
+def configure_database(db_url: Optional[str] = None) -> None:
+    global engine, SessionLocal
+    database_url = _resolve_mysql_url(db_url)
+    engine = create_engine(database_url, pool_pre_ping=True)
     SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False, expire_on_commit=False)
 
 
-def init_db(db_path: Optional[str] = None, db_url: Optional[str] = None) -> None:
-    if db_path is not None or db_url is not None or engine is None or SessionLocal is None:
-        configure_database(db_path=db_path or DB_PATH, db_url=db_url)
+def init_db(db_url: Optional[str] = None) -> None:
+    if db_url is not None or engine is None or SessionLocal is None:
+        configure_database(db_url=db_url)
 
     from APP.persistence import model  # noqa: F401
 
@@ -74,6 +66,5 @@ def _ensure_legacy_columns() -> None:
 
 def get_session():
     if SessionLocal is None:
-        env_db_url = os.getenv("DB_URL", "").strip()
-        configure_database(db_path=DB_PATH if not env_db_url else None, db_url=env_db_url or None)
+        configure_database()
     return SessionLocal()

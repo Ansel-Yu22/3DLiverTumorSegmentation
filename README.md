@@ -42,6 +42,9 @@ powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -BaseUrl "http://1
 # 自定义 Python 可执行文件
 powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
 
+# 指定 MySQL 连接串（必填）
+powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -DbUrl "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
+
 # 跳过 /health 等待
 powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -SkipHealthCheck
 ```
@@ -94,17 +97,16 @@ python api.py
 
 默认服务地址：`http://127.0.0.1:8000`
 
-默认数据库：SQLite（通过 `DB_PATH` 指向 `./Doc/job.db`）。
+数据库：仅支持 MySQL（必须通过 `DB_URL` 配置）。
 
 `Doc` 目录结构：
 
-- `Doc/job.db`：用户/任务数据库
 - `Doc/result/`：所有分割输出（本地 + API）
 - `Doc/upload/`：API 任务上传的 CT 文件
 - `Doc/log/`：API 标准输出与错误日志
 - `Doc/report/`：离线实验/分析文本报告
 
-启动前设置 `DB_URL` 可切换到 MySQL：
+启动前必须设置 `DB_URL`：
 
 ```powershell
 $env:DB_URL = "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
@@ -125,7 +127,7 @@ python api.py
 
 说明：
 
-- 若同时设置 `DB_URL` 与 `DB_PATH`，优先使用 `DB_URL`。
+- 必须设置 `DB_URL`，不再支持 `DB_PATH`/SQLite。
 - 也支持 `mysql://...`，会自动转换为 `mysql+pymysql://...`。
 
 ### API 辅助脚本
@@ -160,7 +162,7 @@ docker run --rm -p 8000:8000 `
   -e MODEL_PATH=/app/Model/checkpoint/best_model.pth `
   -e RESULT_DIR=/app/Doc/result `
   -e UPLOAD_DIR=/app/Doc/upload `
-  -e DB_PATH=/app/Doc/job.db `
+  -e DB_URL=mysql+pymysql://root:your_password@host.docker.internal:3306/liver_seg?charset=utf8mb4 `
   -v D:/your_model_dir:/app/Model/checkpoint `
   -v D:/your_result_dir:/app/Doc `
   liver-seg-api:latest

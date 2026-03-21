@@ -1,6 +1,7 @@
 param(
     [string]$BaseUrl = "http://127.0.0.1:8000",
     [string]$PythonExe = "python",
+    [string]$DbUrl = $env:DB_URL,
     [int]$ApiReadyTimeoutSec = 90,
     [switch]$SkipHealthCheck
 )
@@ -44,10 +45,19 @@ $Command
 Write-Host "ProjectRoot: $ProjectRoot"
 Write-Host "PythonExe: $PythonExe"
 Write-Host "BaseUrl: $BaseUrl"
+if ([string]::IsNullOrWhiteSpace($DbUrl)) {
+    Write-Error "DbUrl is required. This project now uses MySQL only. Please pass -DbUrl or set `$env:DB_URL first."
+    exit 1
+}
+Write-Host "DbUrl: $DbUrl"
 
 Write-Host ""
 Write-Host "[1/3] Starting API terminal..."
-$apiCommand = "& '$PythonExe' api.py"
+$safeDbUrl = Escape-SingleQuote $DbUrl
+$apiCommand = @"
+`$env:DB_URL = '$safeDbUrl'
+& '$PythonExe' api.py
+"@
 Start-TerminalProcess -Title "LiverSeg API" -Command $apiCommand
 
 if (-not $SkipHealthCheck) {
