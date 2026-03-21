@@ -127,7 +127,7 @@ python api.py
 
 说明：
 
-- 必须设置 `DB_URL`，不再支持 `DB_PATH`/SQLite。
+- 必须设置 `DB_URL`。
 - 也支持 `mysql://...`，会自动转换为 `mysql+pymysql://...`。
 
 ### API 辅助脚本
