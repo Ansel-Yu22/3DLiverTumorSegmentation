@@ -18,10 +18,10 @@ RUN python -m pip install --upgrade pip && \
     pip install --index-url https://download.pytorch.org/whl/cpu torch==2.5.1
 
 COPY api.py /app/
-COPY APP /app/APP
-COPY Model /app/Model
+COPY app /app/app
+COPY model /app/model
 
-RUN mkdir -p /app/Doc/result /app/Doc/upload
+RUN mkdir -p /app/doc/result /app/doc/upload
 
 EXPOSE 8000
 

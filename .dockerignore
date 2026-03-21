@@ -11,17 +11,17 @@ __pycache__/
 # Large local datasets/results
 CT/
 Result/
-Docs/
+doc/
 *.nii
 *.nii.gz
 
 # Keep model code, ignore local weight files
-Model/checkpoint/
+model/checkpoint/
 *.pth
 
 # Local scripts not required in image
-Test/
+test_api.py
 run_*.ps1
-UI.py
+ui.py
 train.py
 test.py

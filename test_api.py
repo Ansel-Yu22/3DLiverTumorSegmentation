@@ -6,11 +6,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from APP import state
-from APP.main import app
-from APP.persistence import db
-from APP.service import inference_service
-from Desktop.infra.path_utils import resolve_result_path
+from app import state
+from app.main import app
+from app.persistence import db
+from app.service import inference_service
+from desktop.infra.path_utils import resolve_result_path
 
 
 @pytest.fixture
@@ -172,13 +172,13 @@ def test_job_not_found(client):
 
 def test_resolve_result_path_container_mapping(tmp_path):
     project_root = tmp_path
-    local_result = project_root / "Doc" / "result" / "result-40.nii"
+    local_result = project_root / "doc" / "result" / "result-40.nii"
     local_result.parent.mkdir(parents=True, exist_ok=True)
     local_result.write_bytes(b"ok")
 
-    mapped = resolve_result_path("/app/Doc/result/result-40.nii", base_dir=str(project_root))
+    mapped = resolve_result_path("/app/doc/result/result-40.nii", base_dir=str(project_root))
     assert mapped == str(local_result)
 
     # Keep original path when mapped host file does not exist.
-    unmapped = resolve_result_path("/app/Doc/result/not-exists.nii", base_dir=str(project_root))
-    assert unmapped == "/app/Doc/result/not-exists.nii"
+    unmapped = resolve_result_path("/app/doc/result/not-exists.nii", base_dir=str(project_root))
+    assert unmapped == "/app/doc/result/not-exists.nii"

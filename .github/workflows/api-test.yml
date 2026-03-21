@@ -4,19 +4,19 @@ on:
   push:
     paths:
       - "api.py"
-      - "APP/**"
+      - "app/**"
       - "ui.py"
-      - "Desktop/**"
-      - "Test/**"
+      - "desktop/**"
+      - "test_api.py"
       - "requirements.txt"
       - ".github/workflows/api-test.yml"
   pull_request:
     paths:
       - "api.py"
-      - "APP/**"
+      - "app/**"
       - "ui.py"
-      - "Desktop/**"
-      - "Test/**"
+      - "desktop/**"
+      - "test_api.py"
       - "requirements.txt"
       - ".github/workflows/api-test.yml"
 

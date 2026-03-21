@@ -11,11 +11,11 @@ __pycache__/
 
 # Project runtime outputs
 Result/
-Doc/
+doc/
 Docs/
 
 # Large model/data files (keep repository lightweight)
-Model/checkpoint/*.pth
+model/checkpoint/*.pth
 
 # OS
 .DS_Store

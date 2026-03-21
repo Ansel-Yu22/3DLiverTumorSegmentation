@@ -7,11 +7,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MODEL_PATH: /app/Model/checkpoint/best_model.pth
-      RESULT_DIR: /app/Doc/result
-      UPLOAD_DIR: /app/Doc/upload
+      MODEL_PATH: /app/model/checkpoint/best_model.pth
+      RESULT_DIR: /app/doc/result
+      UPLOAD_DIR: /app/doc/upload
       DB_URL: mysql+pymysql://root:your_password@host.docker.internal:3306/liver_seg?charset=utf8mb4
     volumes:
-      - ./Model/checkpoint:/app/Model/checkpoint
-      - ./Doc:/app/Doc
+      - ./model/checkpoint:/app/model/checkpoint
+      - ./doc:/app/doc
     restart: unless-stopped

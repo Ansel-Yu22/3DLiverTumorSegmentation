@@ -6,47 +6,47 @@
 
 当前仓库关键目录如下：
 
-- `APP/`：后端 FastAPI 应用
-  - `APP/main.py`：应用入口与路由注册
-  - `APP/router/`：接口路由模块（`auth.py`、`predict.py`、`job.py`、`health.py`）
-  - `APP/service/`：业务服务层（`auth_service.py`、`inference_service.py`）
-  - `APP/persistence/`：数据库层（`db.py`、`crud.py`、`model.py`）
-- `Desktop/`：桌面客户端
-  - `Desktop/ui/`：界面层（主窗口、登录弹窗、账号中心等）
-  - `Desktop/core/`：分割流程控制、API 任务控制与本地 worker
-  - `Desktop/infra/`：基础设施工具（`api_client.py`、`path_utils.py`）
-  - 说明：UI 常量集中在 `Desktop/ui/ui_text.py` 与 `Desktop/ui/ui_style.py`
-- `DataPipeline/`：离线数据处理流水线
-  - `DataPipeline/loader/`：数据加载与变换
-  - `DataPipeline/processing/`：预处理、扩增、分析脚本
-- `Training/`：离线训练与评估
-  - `Training/runner/`：`train.py`、`test.py`
-  - `Training/core/`：`loss.py`、`evaluate.py`、`log.py`
-- `Script/`：启动与测试辅助脚本（`run_all.ps1`、`run_api.ps1`）
-- `Doc/`：文档、示例数据、日志、数据库与结果输出
+- `app/`：后端 FastAPI 应用
+  - `app/main.py`：应用入口与路由注册
+  - `app/router/`：接口路由模块（`auth.py`、`predict.py`、`job.py`、`health.py`）
+  - `app/service/`：业务服务层（`auth_service.py`、`inference_service.py`）
+  - `app/persistence/`：数据库层（`db.py`、`crud.py`、`model.py`）
+- `desktop/`：桌面客户端
+  - `desktop/ui/`：界面层（主窗口、登录弹窗、账号中心等）
+  - `desktop/core/`：分割流程控制、API 任务控制与本地 worker
+  - `desktop/infra/`：基础设施工具（`api_client.py`、`path_utils.py`）
+  - 说明：UI 常量集中在 `desktop/ui/ui_text.py` 与 `desktop/ui/ui_style.py`
+- `dataset/`：离线数据处理流水线
+  - `dataset/loader/`：数据加载与变换
+  - `dataset/processing/`：预处理、扩增、分析脚本
+- `training/`：离线训练与评估
+  - `training/runner/`：`train.py`、`test.py`
+  - `training/core/`：`loss.py`、`evaluate.py`、`log.py`
+- `script/`：启动与测试辅助脚本（`run_all.ps1`、`run_api.ps1`）
+- `doc/`：文档、示例数据、日志、数据库与结果输出
 
 ## 1) 一键启动（API + UI）
 
-使用 `Script/run_all.ps1` 在两个终端中分别启动后端 API 与桌面端 UI。
+使用 `script/run_all.ps1` 在两个终端中分别启动后端 API 与桌面端 UI。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1
+powershell -ExecutionPolicy Bypass -File .\script\run_all.ps1
 ```
 
 可选参数：
 
 ```powershell
 # 自定义 API 地址
-powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
+powershell -ExecutionPolicy Bypass -File .\script\run_all.ps1 -BaseUrl "http://127.0.0.1:8000"
 
 # 自定义 Python 可执行文件
-powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
+powershell -ExecutionPolicy Bypass -File .\script\run_all.ps1 -PythonExe "D:\software\Anaconda\envs\pytorch\python.exe"
 
 # 指定 MySQL 连接串（必填）
-powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -DbUrl "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
+powershell -ExecutionPolicy Bypass -File .\script\run_all.ps1 -DbUrl "mysql+pymysql://root:your_password@127.0.0.1:3306/liver_seg?charset=utf8mb4"
 
 # 跳过 /health 等待
-powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -SkipHealthCheck
+powershell -ExecutionPolicy Bypass -File .\script\run_all.ps1 -SkipHealthCheck
 ```
 
 启动后的登录流程：
@@ -63,13 +63,13 @@ powershell -ExecutionPolicy Bypass -File .\Script\run_all.ps1 -SkipHealthCheck
 
 ### UI 截图
 
-![UI Main](Doc/img/ui-main.png)
+![UI Main](doc/img/ui-main.png)
 
 ## 2) 端到端流程（演示/面试）
 
 ```mermaid
 flowchart LR
-  A["启动 Script/run_all.ps1"] --> B["登录/注册窗口"]
+  A["启动 script/run_all.ps1"] --> B["登录/注册窗口"]
   B --> C["主界面"]
   C --> D["加载 CT 文件"]
   D --> E["点击 API 分割"]
@@ -83,7 +83,7 @@ flowchart LR
 
 建议用于简历/作品集的截图：
 
-- `Doc/img/ui-main.png`（主分割界面）
+- `doc/img/ui-main.png`（主分割界面）
 - 登录窗口（进入主界面前）
 - 账号中心（账号信息 + 近期任务）
 
@@ -99,12 +99,12 @@ python api.py
 
 数据库：仅支持 MySQL（必须通过 `DB_URL` 配置）。
 
-`Doc` 目录结构：
+`doc` 目录结构：
 
-- `Doc/result/`：所有分割输出（本地 + API）
-- `Doc/upload/`：API 任务上传的 CT 文件
-- `Doc/log/`：API 标准输出与错误日志
-- `Doc/report/`：离线实验/分析文本报告
+- `doc/result/`：所有分割输出（本地 + API）
+- `doc/upload/`：API 任务上传的 CT 文件
+- `doc/log/`：API 标准输出与错误日志
+- `doc/report/`：离线实验/分析文本报告
 
 启动前必须设置 `DB_URL`：
 
@@ -136,13 +136,13 @@ python api.py
 
 ```powershell
 # 同步预测
-powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode predict
+powershell -ExecutionPolicy Bypass -File .\script\run_api.ps1 -Mode predict
 
 # 异步任务（详细输出）
-powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode job
+powershell -ExecutionPolicy Bypass -File .\script\run_api.ps1 -Mode job
 
 # 异步任务（简洁输出）
-powershell -ExecutionPolicy Bypass -File .\Script\run_api.ps1 -Mode job_simple
+powershell -ExecutionPolicy Bypass -File .\script\run_api.ps1 -Mode job_simple
 ```
 
 ## 5) Docker 部署
@@ -155,20 +155,20 @@ docker build -f Dockerfile -t liver-seg-api:latest .
 
 ### 使用 docker run 运行
 
-模型权重未包含在仓库中，请将本地模型目录挂载到容器内 `/app/Model/checkpoint`。
+模型权重未包含在仓库中，请将本地模型目录挂载到容器内 `/app/model/checkpoint`。
 
 ```powershell
 docker run --rm -p 8000:8000 `
-  -e MODEL_PATH=/app/Model/checkpoint/best_model.pth `
-  -e RESULT_DIR=/app/Doc/result `
-  -e UPLOAD_DIR=/app/Doc/upload `
+  -e MODEL_PATH=/app/model/checkpoint/best_model.pth `
+  -e RESULT_DIR=/app/doc/result `
+  -e UPLOAD_DIR=/app/doc/upload `
   -e DB_URL=mysql+pymysql://root:your_password@host.docker.internal:3306/liver_seg?charset=utf8mb4 `
-  -v D:/your_model_dir:/app/Model/checkpoint `
-  -v D:/your_result_dir:/app/Doc `
+  -v D:/your_model_dir:/app/model/checkpoint `
+  -v D:/your_result_dir:/app/doc `
   liver-seg-api:latest
 ```
 
-说明：当 API 在 Docker 中运行时，返回路径如 `/app/Doc/...` 是容器路径。`Script/run_api.ps1` 会尝试自动映射到当前本地目录。
+说明：当 API 在 Docker 中运行时，返回路径如 `/app/doc/...` 是容器路径。`script/run_api.ps1` 会尝试自动映射到当前本地目录。
 
 ### 使用 docker compose 运行（推荐）
 
@@ -203,23 +203,23 @@ GitHub Actions 工作流 `API Tests` 会在 push/PR 时自动执行。
 
 训练、评估与数据处理脚本主要分布在：
 
-- `Training/runner/train.py`
-- `Training/runner/test.py`
-- `Training/core/loss.py`
-- `Training/core/evaluate.py`
-- `Training/core/log.py`
-- `DataPipeline/loader/dataset_train.py`
-- `DataPipeline/loader/dataset_test.py`
-- `DataPipeline/loader/transform.py`
-- `DataPipeline/processing/preprocess.py`
-- `DataPipeline/processing/expand.py`
-- `DataPipeline/processing/analyze.py`
+- `training/runner/train.py`
+- `training/runner/test.py`
+- `training/core/loss.py`
+- `training/core/evaluate.py`
+- `training/core/log.py`
+- `dataset/loader/dataset_train.py`
+- `dataset/loader/dataset_test.py`
+- `dataset/loader/transform.py`
+- `dataset/processing/preprocess.py`
+- `dataset/processing/expand.py`
+- `dataset/processing/analyze.py`
 
 可通过模块方式运行：
 
 ```powershell
-python -m Training.runner.train
-python -m Training.runner.test
-python -m DataPipeline.loader.dataset_train
-python -m DataPipeline.processing.preprocess
+python -m training.runner.train
+python -m training.runner.test
+python -m dataset.loader.dataset_train
+python -m dataset.processing.preprocess
 ```
