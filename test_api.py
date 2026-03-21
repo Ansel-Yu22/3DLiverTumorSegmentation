@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app import state
 from app.main import app
-from app.persistence import db
+from app.persistence import crud, db, model
 from app.service import inference_service
 from desktop.infra.path_utils import resolve_result_path
 
@@ -182,3 +182,42 @@ def test_resolve_result_path_container_mapping(tmp_path):
     # Keep original path when mapped host file does not exist.
     unmapped = resolve_result_path("/app/doc/result/not-exists.nii", base_dir=str(project_root))
     assert unmapped == "/app/doc/result/not-exists.nii"
+
+
+def test_fail_stale_jobs_marks_only_pending_or_running(client):
+    with db.get_session() as session:
+        crud.create_job(session, "job-stale-running", "/tmp/a.nii", "a.nii")
+        crud.create_job(session, "job-fresh-running", "/tmp/b.nii", "b.nii")
+        crud.create_job(session, "job-stale-succeeded", "/tmp/c.nii", "c.nii")
+
+    with db.get_session() as session:
+        crud.update_job(session, "job-stale-running", "running")
+        crud.update_job(session, "job-fresh-running", "running")
+        crud.update_job(session, "job-stale-succeeded", "succeeded")
+
+    with db.get_session() as session:
+        stale_running = session.get(model.Job, "job-stale-running")
+        stale_running.updated_at = "2000-01-01T00:00:00Z"
+
+        fresh_running = session.get(model.Job, "job-fresh-running")
+        fresh_running.updated_at = "2099-01-01T00:00:00Z"
+
+        stale_succeeded = session.get(model.Job, "job-stale-succeeded")
+        stale_succeeded.updated_at = "2000-01-01T00:00:00Z"
+        session.commit()
+
+    with db.get_session() as session:
+        changed = crud.fail_stale_jobs(
+            session,
+            cutoff_utc="2020-01-01T00:00:00Z",
+            reason="auto cleanup: test reason",
+        )
+        stale_running = crud.get_job(session, "job-stale-running")
+        fresh_running = crud.get_job(session, "job-fresh-running")
+        stale_succeeded = crud.get_job(session, "job-stale-succeeded")
+
+    assert changed == 1
+    assert stale_running["status"] == "failed"
+    assert stale_running["error"] == "auto cleanup: test reason"
+    assert fresh_running["status"] == "running"
+    assert stale_succeeded["status"] == "succeeded"

@@ -123,3 +123,19 @@ def list_jobs(session: Session, user_id: Optional[int] = None, limit: int = 20) 
     jobs = session.execute(stmt).scalars().all()
     return [_job_to_dict(job) for job in jobs]
 
+
+def fail_stale_jobs(session: Session, cutoff_utc: str, reason: str) -> int:
+    stmt = select(Job).where(Job.status.in_(("pending", "running")), Job.updated_at < cutoff_utc)
+    jobs = session.execute(stmt).scalars().all()
+    if not jobs:
+        return 0
+
+    now = _utc_now()
+    for job in jobs:
+        job.status = "failed"
+        job.error = reason
+        job.updated_at = now
+
+    session.commit()
+    return len(jobs)
+

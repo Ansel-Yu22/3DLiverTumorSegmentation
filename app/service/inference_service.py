@@ -16,6 +16,8 @@ from model.model import UNet
 from app import state
 from app.persistence import crud, db
 
+DEFAULT_JOB_STALE_MINUTES = 60
+
 
 class InferenceDataset(Dataset):
     def __init__(self, ct_path: str):
@@ -197,10 +199,33 @@ def load_state_dict(model_path: str):
     return state_dict
 
 
+def _read_job_stale_minutes() -> int:
+    raw = (os.getenv("JOB_STALE_MINUTES", str(DEFAULT_JOB_STALE_MINUTES)) or "").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return DEFAULT_JOB_STALE_MINUTES
+    return max(1, value)
+
+
+def cleanup_stale_jobs_on_startup() -> tuple[int, int]:
+    stale_minutes = _read_job_stale_minutes()
+    cutoff_ts = time.time() - stale_minutes * 60
+    cutoff_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(cutoff_ts))
+    reason = f"auto cleanup: interrupted task (stale > {stale_minutes} min)"
+
+    with db.get_session() as session:
+        cleaned = crud.fail_stale_jobs(session, cutoff_utc=cutoff_utc, reason=reason)
+    return cleaned, stale_minutes
+
+
 def startup_init() -> None:
     os.makedirs(state.RESULT_DIR, exist_ok=True)
     os.makedirs(state.UPLOAD_DIR, exist_ok=True)
     db.init_db(db_url=state.DB_URL or None)
+    cleaned, stale_minutes = cleanup_stale_jobs_on_startup()
+    if cleaned > 0:
+        print(f"[startup] cleaned {cleaned} stale jobs (JOB_STALE_MINUTES={stale_minutes})")
     net = UNet(in_channel=1, out_channel=state.N_LABEL, drop_rate=state.DROP_RATE, training=False)
     net = net.to(state.device)
     loaded_state_dict = load_state_dict(state.MODEL_PATH)
