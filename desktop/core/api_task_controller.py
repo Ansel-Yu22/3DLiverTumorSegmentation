@@ -100,7 +100,7 @@ class ApiTaskControllerMixin:
             self.display_slice()
             self._refresh_action_buttons()
             self.ui.progressBar.setValue(100)
-            mode_text = "me/jobs" if endpoint == "/me/jobs" else "jobs"
+            mode_text = "云端分割"
             self._show_segmentation_success(mode_text, job_id, elapsed_ms)
             return
 

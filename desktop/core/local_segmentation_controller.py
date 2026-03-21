@@ -1,5 +1,4 @@
 import os
-import time
 
 import config
 import nibabel as nib
@@ -66,8 +65,8 @@ class LocalSegmentationControllerMixin:
         self.display_slice()
         self._refresh_action_buttons()
 
-        local_job_id = f"local-{int(time.time())}"
-        self._show_segmentation_success("local", local_job_id, elapsed_ms)
+        local_job_id = "本地任务(无服务器ID)"
+        self._show_segmentation_success("本地分割", local_job_id, elapsed_ms)
 
     def _on_local_segmentation_failed(self, error_message):
         self.ui.progressBar.setValue(0)
